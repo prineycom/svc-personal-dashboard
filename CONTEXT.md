@@ -45,20 +45,48 @@ _Avoid_: модуль, сервис-репо
 - **Shared Redis**: Один инстанс Redis в `services/infra/` для Wger (celery) и других сервисов.
 - **Доступ**: Все сервисы за Tailscale. Авторизация не критична — каждый сервис имеет свой логин, но реальная защита сетевая (Tailscale WireGuard). SSO не нужен.
 
+## Service Images
+
+| Сервис | Образ | Контейнеров | База | RAM (idle) | ARM64 |
+|--------|-------|-------------|------|------------|-------|
+| Infra | `postgres:17-alpine` | 1 | Shared | ~50 MB | ✅ |
+| Infra | `redis:7-alpine` | 1 | Shared | ~20 MB | ✅ |
+| Vikunja | `vikunja/vikunja:2.3.0` | 1 | Shared PG | ~30-50 MB | ✅ |
+| Firefly III | `fireflyiii/core:version-6.6.3` + `alpine` cron | 2 | Shared PG | ~100-170 MB | ✅ |
+| Wger | `wger/server:2.5` + `nginx:stable` + celery_worker + celery_beat | 4 | Shared PG + Redis | ~190 MB | ✅ |
+| Linkding | `sissbruecker/linkding:1.45.0-alpine` | 1 | SQLite | ~50 MB | ✅ |
+| BeaverHabits | `daya0576/beaverhabits:0.9.1` | 1 | SQLite (DATABASE mode) | ~10-20 MB | ✅ |
+| OpenTickly | `correctroad/opentoggl:0.2.16` | 1 | Shared PG + Redis | ~30-50 MB | ✅ |
+
+**Итого: 12 контейнеров, ~900 MB idle / ~1.3 GB peak RAM.**
+
 ## Architecture Split
 
 **В Blueprint (Docker Compose):**
-1. `services/infra/` — shared PostgreSQL + Redis
-2. `services/vikunja/` — задачи
-3. `services/firefly-iii/` — финансы
-4. `services/wger/` — здоровье
-5. `services/linkding/` — закладки
-6. `services/beaverhabits/` — привычки
-7. `services/opentickly/` — тайм-трекинг
+1. `services/infra/` — shared PostgreSQL 17 + Redis 7
+2. `services/vikunja/` — задачи (1 контейнер)
+3. `services/firefly-iii/` — финансы (2 контейнера: app + cron)
+4. `services/wger/` — здоровье (4 контейнера: web, nginx, celery_worker, celery_beat)
+5. `services/linkding/` — закладки (1 контейнер)
+6. `services/beaverhabits/` — привычки (1 контейнер)
+7. `services/opentickly/` — тайм-трекинг (1 контейнер)
 
 **Через Hermes-скиллы (вне compose):**
 - Почта (Gmail) — Google Workspace скилл
 - Календарь — Google Workspace скилл
+
+## Routing
+
+Роутинг через Traefik (управляется Dokploy UI, не в compose):
+
+| Сервис | Поддомен |
+|--------|----------|
+| Vikunja | `tasks.dashboard.example.com` |
+| Firefly III | `finance.dashboard.example.com` |
+| Wger | `fitness.dashboard.example.com` |
+| Linkding | `bookmarks.dashboard.example.com` |
+| BeaverHabits | `habits.dashboard.example.com` |
+| OpenTickly | `time.dashboard.example.com`
 
 ## Example Dialogue
 
