@@ -1,6 +1,6 @@
 # svc-personal-dashboard
 
-Personal Dashboard — deployment blueprint for Dokploy. One monorepo, one `docker compose up`, seven self-hosted services behind Tailscale. Shared PostgreSQL 17 + Redis in `services/infra/`. Hermes AI agent as orchestration layer via MCP.
+Personal Dashboard — deployment blueprint for Dokploy. One monorepo, one `docker compose up`, seven self-hosted services behind Tailscale. Shared PostgreSQL 17 + Redis in the flat root compose. Hermes AI agent as orchestration layer via MCP.
 
 ## Architecture
 
@@ -8,16 +8,15 @@ Personal Dashboard — deployment blueprint for Dokploy. One monorepo, one `dock
 svc-personal-dashboard/
 ├── CONTEXT.md              ← project glossary & decisions
 ├── docs/adr/               ← architecture decision records
-├── docker-compose.yml      ← root compose, uses `include`
+├── docker-compose.yml      ← flat compose — all 12 containers in one file
 ├── .env.example            ← shared env vars
 ├── services/
-│   ├── infra/              ← PostgreSQL 17 + Redis
-│   ├── vikunja/            ← task backlog
-│   ├── firefly-iii/        ← finance tracker
-│   ├── wger/               ← gym + nutrition
-│   ├── linkding/           ← bookmarks
-│   ├── beaverhabits/       ← habit tracker
-│   └── opentickly/         ← time tracker
+│   ├── vikunja/            ← task backlog (.env.example)
+│   ├── firefly-iii/        ← finance tracker (.env.example)
+│   ├── wger/               ← gym + nutrition (.env.example)
+│   ├── linkding/           ← bookmarks (.env.example)
+│   ├── beaverhabits/       ← habit tracker (.env.example)
+│   └── opentickly/         ← time tracker (.env.example)
 └── README.md
 ```
 

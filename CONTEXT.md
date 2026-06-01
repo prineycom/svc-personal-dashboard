@@ -17,7 +17,7 @@ _Avoid_: модуль, блок, секция
 _Avoid_: коннектор, плагин, адаптер
 
 **Blueprint**:
-Монорепо `svc-personal-dashboard` на основе template-service, деплоящееся через Dokploy. Один репозиторий содержит все сервисы; каждый сервис — в своей подпапке `services/<name>/`. Корневой `docker-compose.yml` ссылается на подпапки.
+Монорепо `svc-personal-dashboard` на основе template-service, деплоящееся через Dokploy. Один репозиторий содержит все сервисы; каждый сервис — в своей подпапке `services/<name>/` с `.env.example`. Корневой `docker-compose.yml` — плоский (все 12 контейнеров в одном файле, без `include`).
 _Avoid_: монолит, единый compose
 
 **Service Directory**:
@@ -39,10 +39,10 @@ _Avoid_: модуль, сервис-репо
 - **Контакты**: Не priority. Резерв: OxiCloud или Radicale.
 - **Закладки/Медиа**: Linkding (self-hosted). Ультра-лёгкий (1 контейнер, ~60 МБ RAM, SQLite), 2 MCP-сервера, ARM64 alpine, авто-архивация через Internet Archive. AI tagging/summaries — через Hermes при сохранлении. → [ADR 0005](docs/adr/0005-linkding-for-bookmarks.md)
 - **MCP Dashboard**: Отключён. Создан преждевременно. Вернуть после редизайна.
-- **Деплой**: Монорепо Blueprint `prineycom/svc-personal-dashboard` (private) на основе template-service. Структура B — каждый сервис в `services/<name>/`, корневой compose через `include` собирает их. Один репозиторий, один Dokploy deploy. → [ADR 0006](docs/adr/0006-monorepo-blueprint.md)
+- **Деплой**: Монорепо Blueprint `prineycom/svc-personal-dashboard` (private) на основе template-service. Плоский `docker-compose.yml` — все 12 контейнеров в одном файле. Каждый сервис в `services/<name>/` с `.env.example` для читаемости. Один репозиторий, один Dokploy deploy. → [ADR 0006](docs/adr/0006-monorepo-blueprint.md)
 - **Прежний `personal-dashboard`**: Удалён/переделан. Не референсировать, не переносить код.
-- **Shared PostgreSQL**: Один инстанс PostgreSQL 17 в `services/infra/` с отдельными базами для Vikunja, Firefly III, Wger, OpenTickly. BeaverHabits и Linkding используют встроенный SQLite.
-- **Shared Redis**: Один инстанс Redis в `services/infra/` для Wger (celery) и других сервисов.
+- **Shared PostgreSQL**: Один инстанс PostgreSQL 17 (описан в корневом compose) с отдельными базами для Vikunja, Firefly III, Wger, OpenTickly. BeaverHabits и Linkding используют встроенный SQLite.
+- **Shared Redis**: Один инстанс Redis (описан в корневом compose) для Wger (celery) и других сервисов.
 - **Доступ**: Все сервисы за Tailscale. Авторизация не критична — каждый сервис имеет свой логин, но реальная защита сетевая (Tailscale WireGuard). SSO не нужен.
 
 ## Service Images
@@ -63,7 +63,7 @@ _Avoid_: модуль, сервис-репо
 ## Architecture Split
 
 **В Blueprint (Docker Compose):**
-1. `services/infra/` — shared PostgreSQL 17 + Redis 7
+1. PostgreSQL 17 + Redis 7 — в корневом `docker-compose.yml`
 2. `services/vikunja/` — задачи (1 контейнер)
 3. `services/firefly-iii/` — финансы (2 контейнера: app + cron)
 4. `services/wger/` — здоровье (4 контейнера: web, nginx, celery_worker, celery_beat)

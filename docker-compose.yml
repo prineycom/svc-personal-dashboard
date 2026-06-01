@@ -3,9 +3,10 @@
 # Deployed from git via Dokploy.
 #
 # Architecture:
-#   - Uses `include` (Compose v2.24+) to pull in each service's compose file.
-#   - If Dokploy doesn't support `include`, flatten this into one file.
-#   - Shared PostgreSQL 17 + Redis live in services/infra/.
+#   - Flat compose (no `include`) — all services in one file.
+#   - Shared PostgreSQL 17 + Redis live here.
+#   - Service configs live in services/<name>/.env.example for readability,
+#     but compose is one flat file — no fragments.
 #   - BeaverHabits + Linkding use embedded SQLite — no external DB.
 #
 # Conventions (from template-service):
@@ -17,16 +18,77 @@
 #   • Memory limits on every service — no swap on Pi 5.
 # ─────────────────────────────────────────────────────────────────────────────
 
-include:
-  - services/infra/docker-compose.yml
-  - services/vikunja/docker-compose.yml
-  - services/firefly-iii/docker-compose.yml
-  - services/wger/docker-compose.yml
-  - services/linkding/docker-compose.yml
-  - services/beaverhabits/docker-compose.yml
-  - services/opentickly/docker-compose.yml
+services:
+  # ── Shared PostgreSQL 17 ──────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine  # v17 is current stable; compatible with all services
+    restart: unless-stopped
 
-# Shared networks — declared here so all included files can reference them.
+    # Container port — used by other services on the internal network.
+    expose:
+      - "5432"
+
+    # Raw TCP exception: publish only if DB_PUBLIC_PORT is set.
+    # Requires strong password + fail2ban on host. Leave empty to keep private.
+    ports:
+      - ${DB_PUBLIC_PORT:-}:5432
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Databases are created at runtime — each service's app creates its own DB.
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    networks:
+      - internal
+
+  # ── Shared Redis ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+    expose:
+      - "6379"
+
+    command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  redis_data:
+
+# Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
 networks:
   dokploy-network:
