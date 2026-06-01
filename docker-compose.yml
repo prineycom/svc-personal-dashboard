@@ -344,6 +344,31 @@ services:
       - internal
       - dokploy-network
 
+  # ── BeaverHabits (Habits) ──────────────────────────────────────────────
+  beaverhabits:
+    image: daya0576/beaverhabits:0.9.1
+    restart: unless-stopped
+
+    environment:
+      HABITS_STORAGE: DATABASE
+      HABITS_USER_EMAIL: ${BEAVERHABITS_EMAIL:-}
+
+    volumes:
+      - beaverhabits_data:/app/.user/
+
+    # For local testing — set BEAVERHABITS_PORT=8081 in .env
+    ports:
+      - ${BEAVERHABITS_PORT:-}:8080
+
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+    networks:
+      - internal
+      - dokploy-network
+
 volumes:
   postgres_data:
   redis_data:
@@ -353,6 +378,7 @@ volumes:
   wger_media:
   wger_celery_beat:
   linkding_data:
+  beaverhabits_data:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
