@@ -1,0 +1,5 @@
+# Secrets live in Dokploy → Environment, never in git.
+.env
+*.env
+!*.env.example
+*.local
