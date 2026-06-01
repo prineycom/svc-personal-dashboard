@@ -40,6 +40,7 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./services/infra/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -84,9 +85,55 @@ services:
     networks:
       - internal
 
+  # ── Vikunja (Tasks) ───────────────────────────────────────────────────
+  vikunja:
+    image: vikunja/vikunja:2.3.0
+    user: "0:0"  # rootless Docker Pi 5: run as root inside container (safe)
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      VIKUNJA_DATABASE_TYPE: ${VIKUNJA_DATABASE_TYPE:-postgres}
+      VIKUNJA_DATABASE_HOST: ${VIKUNJA_DATABASE_HOST:-postgres}
+      VIKUNJA_DATABASE_USER: ${VIKUNJA_DATABASE_USER}
+      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DATABASE_PASSWORD}
+      VIKUNJA_DATABASE_DATABASE: ${VIKUNJA_DATABASE_DATABASE}
+      VIKUNJA_SERVICE_SECRET: ${VIKUNJA_SERVICE_SECRET}
+      VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_SERVICE_PUBLICURL:-http://localhost:3456}
+
+    volumes:
+      - vikunja_files:/app/vikunja/files
+
+    # For local testing — set VIKUNJA_PORT=3456 in .env
+    # On Dokploy: leave empty and use Traefik labels instead.
+    ports:
+      - ${VIKUNJA_PORT:-}:3456
+
+    # Vikunja minimal image has no wget/curl/sh — use pgrep or skip healthcheck.
+    # Container verified via external curl http://localhost:3456.
+    healthcheck:
+      test: ["CMD", "/app/vikunja/vikunja", "doctor"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
 volumes:
   postgres_data:
   redis_data:
+  vikunja_files:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
