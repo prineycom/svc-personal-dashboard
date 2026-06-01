@@ -323,6 +323,27 @@ services:
     networks:
       - internal
 
+  # ── Linkding (Bookmarks) ────────────────────────────────────────────────
+  linkding:
+    image: sissbruecker/linkding:1.45.0-alpine
+    restart: unless-stopped
+
+    volumes:
+      - linkding_data:/etc/linkding/data
+
+    # For local testing — set LINKDING_PORT=9090 in .env
+    ports:
+      - ${LINKDING_PORT:-}:9090
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
 volumes:
   postgres_data:
   redis_data:
@@ -331,6 +352,7 @@ volumes:
   wger_static:
   wger_media:
   wger_celery_beat:
+  linkding_data:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
