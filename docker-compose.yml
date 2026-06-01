@@ -1,130 +1,36 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# <SERVICE> — deployment blueprint, deployed from git via Dokploy.
+# Personal Dashboard — monorepo deployment blueprint.
+# Deployed from git via Dokploy.
 #
-# Keep these rules — they are what make the blueprint portable & safe:
-#   • HTTP is exposed via Traefik ONLY — never a `ports:` mapping. Dokploy
-#     publishes container ports straight past the host firewall, so any `ports:`
-#     entry becomes internet-facing. Route the app via the Traefik labels below
-#     (host from ${SERVICE_DOMAIN}). Use ONE routing method — these labels OR
-#     Dokploy's Domains tab (which guesses port 3000), not both, or you get
-#     duplicate routers (one pointing at the wrong port → 502).
-#   • Raw TCP (e.g. a database) is the one allowed exception: Traefik can't proxy
-#     it, so publish a PARAMETERISED host port (`${DB_PUBLIC_PORT}:5432`). It IS
-#     internet-facing (Docker DNAT bypasses the host firewall) → guard it with a
-#     strong password + a host-side fail2ban jail. See the db block below.
-#   • Pin image tags (never :latest) so deploys are reproducible across machines.
-#   • Everything machine-specific (domain, secrets, limits) comes from env set in
-#     Dokploy, not from this file. Reference it as ${VAR}.
-#   • Secrets never live in git — document their names in .env.example only.
+# Architecture:
+#   - Uses `include` (Compose v2.24+) to pull in each service's compose file.
+#   - If Dokploy doesn't support `include`, flatten this into one file.
+#   - Shared PostgreSQL 17 + Redis live in services/infra/.
+#   - BeaverHabits + Linkding use embedded SQLite — no external DB.
+#
+# Conventions (from template-service):
+#   • HTTP via Traefik ONLY — no `ports:` on web services.
+#   • Raw TCP (PostgreSQL) is the one allowed ports: exception.
+#   • Pin image tags — never `:latest`.
+#   • Nothing machine-specific in git — domains/secrets from Dokploy env.
+#   • Networks: web services on dokploy-network, private deps on internal.
+#   • Memory limits on every service — no swap on Pi 5.
 # ─────────────────────────────────────────────────────────────────────────────
 
-services:
-  app:
-    # TODO: pin a real image + version. Or switch to `build: .` to bake config/.
-    image: REPLACE_ME/IMAGE:1.0.0
-    # build: .              # use instead of `image:` to build the local Dockerfile
-    restart: unless-stopped
+include:
+  - services/infra/docker-compose.yml
+  - services/vikunja/docker-compose.yml
+  - services/firefly-iii/docker-compose.yml
+  - services/wger/docker-compose.yml
+  - services/linkding/docker-compose.yml
+  - services/beaverhabits/docker-compose.yml
+  - services/opentickly/docker-compose.yml
 
-    # Some images need a flag to start (config path, mode, …). Uncomment + set.
-    # command: ["--config=/etc/app/config.yaml"]
-
-    # Container port the app listens on (used by the Traefik label
-    # loadbalancer.server.port below). Stays on the docker network; never `ports:`.
-    expose:
-      - "8080"              # TODO: set to your app's port (and match it below)
-
-    environment:
-      # TODO: map the vars your service needs; values come from Dokploy → Environment.
-      EXAMPLE_VAR: ${EXAMPLE_VAR}
-      # SECRET_TOKEN: ${SECRET_TOKEN}
-
-    # Host has no swap — cap memory so a spike can't OOM the box. TODO: tune.
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-
-    # A healthcheck lets Dokploy/Traefik know the app is ready. Adjust the probe
-    # to your image (curl / wget / python3) and the port+path to match `expose`.
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-    # Traefik routing — Dokploy does NOT auto-wire Compose, so the labels live here.
-    # Host comes from ${SERVICE_DOMAIN} (Dokploy env) → blueprint stays machine-agnostic.
-    # websecure's default certResolver issues the Let's Encrypt cert. SERVICE_NAME
-    # must be unique per machine. Set the loadbalancer port = your `expose` port.
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${SERVICE_NAME}.rule=Host(`${SERVICE_DOMAIN}`)
-      - traefik.http.routers.${SERVICE_NAME}.entrypoints=websecure
-      - traefik.http.routers.${SERVICE_NAME}.tls.certresolver=letsencrypt
-      - traefik.http.routers.${SERVICE_NAME}.service=${SERVICE_NAME}   # explicit → no auto-link ambiguity
-      - traefik.http.services.${SERVICE_NAME}.loadbalancer.server.port=8080   # TODO: match expose
-      # HTTP → HTTPS redirect
-      - traefik.http.routers.${SERVICE_NAME}-web.rule=Host(`${SERVICE_DOMAIN}`)
-      - traefik.http.routers.${SERVICE_NAME}-web.entrypoints=web
-      - traefik.http.routers.${SERVICE_NAME}-web.service=${SERVICE_NAME}
-      - traefik.http.routers.${SERVICE_NAME}-web.middlewares=${SERVICE_NAME}-redirect
-      - traefik.http.middlewares.${SERVICE_NAME}-redirect.redirectscheme.scheme=https
-
-    networks:
-      - dokploy-network    # required: lets Traefik reach this service
-      # - internal         # uncomment if you add the private db below
-
-  # ── Optional private datastore + cache (uncomment + adapt) ──────────────────
-  # Stamp this for a DB-backed service. db + redis stay on `internal` (off
-  # dokploy-network → Traefik can't reach them); the app service must also join
-  # `internal` (uncomment its line above) to reach them by name (db:5432, redis:6379).
-  # db:
-  #   image: postgres:16.4          # pin it
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_USER: ${POSTGRES_USER}
-  #     POSTGRES_DB: ${POSTGRES_DB}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  #   # Raw TCP can't go through Traefik. ONLY if external clients must connect,
-  #   # publish a PARAMETERISED host port — it's internet-facing (Docker DNAT
-  #   # bypasses the firewall), so pair it with a strong password + fail2ban.
-  #   # Drop this `ports:` block to keep the db private to the stack.
-  #   ports:
-  #     - "${DB_PUBLIC_PORT:-5432}:5432"
-  #   volumes:
-  #     - db-data:/var/lib/postgresql/data
-  #   networks:
-  #     - internal                  # NOT on dokploy-network → unreachable by Traefik
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 1G
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #
-  # redis:
-  #   image: redis:7.4-alpine       # pin it
-  #   restart: unless-stopped
-  #   networks:
-  #     - internal                  # private cache — never published
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 128M
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-
-# volumes:
-#   db-data:
-
+# Shared networks — declared here so all included files can reference them.
+# dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
 networks:
   dokploy-network:
-    external: true                  # created by Dokploy — do not redefine
-  # internal:                       # uncomment alongside the db/redis services
+    external: true
+  internal:
+    name: ${COMPOSE_PROJECT_NAME:-pd}-internal
+    internal: true
