@@ -200,11 +200,137 @@ services:
     networks:
       - internal
 
+  # ── Wger (Health/Fitness) ──────────────────────────────────────────────
+  wger-web:
+    image: wger/server:2.5
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    env_file:
+      - ./services/wger/.env
+
+    volumes:
+      - wger_static:/home/wger/static
+      - wger_media:/home/wger/media
+
+    expose:
+      - "8000"
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000"]
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    networks:
+      - internal
+      - dokploy-network
+
+  wger-nginx:
+    image: nginx:stable
+    restart: unless-stopped
+
+    depends_on:
+      wger-web:
+        condition: service_healthy
+
+    volumes:
+      - ./services/wger/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - wger_static:/wger/static:ro
+      - wger_media:/wger/media:ro
+
+    # For local testing — set WGER_PORT=8001 in .env
+    ports:
+      - ${WGER_PORT:-}:80
+
+    healthcheck:
+      test: ["CMD", "service", "nginx", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+    networks:
+      - internal
+      - dokploy-network
+
+  wger-celery-worker:
+    image: wger/server:2.5
+    command: /start-worker
+    restart: unless-stopped
+
+    env_file:
+      - ./services/wger/.env
+
+    volumes:
+      - wger_media:/home/wger/media
+
+    depends_on:
+      wger-web:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "celery", "-A", "wger", "inspect", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    networks:
+      - internal
+
+  wger-celery-beat:
+    image: wger/server:2.5
+    command: /start-beat
+    restart: unless-stopped
+
+    env_file:
+      - ./services/wger/.env
+
+    volumes:
+      - wger_celery_beat:/home/wger/beat/
+
+    depends_on:
+      wger-celery-worker:
+        condition: service_healthy
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+
 volumes:
   postgres_data:
   redis_data:
   vikunja_files:
   firefly_uploads:
+  wger_static:
+  wger_media:
+  wger_celery_beat:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
