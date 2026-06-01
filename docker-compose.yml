@@ -130,10 +130,81 @@ services:
       - internal
       - dokploy-network
 
+  # ── Firefly III (Finances) ─────────────────────────────────────────────
+  firefly-app:
+    image: fireflyiii/core:version-6.6.3
+    hostname: firefly-app
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      APP_ENV: ${FIREFLY_APP_ENV:-production}
+      APP_DEBUG: ${FIREFLY_APP_DEBUG:-false}
+      SITE_OWNER: ${FIREFLY_SITE_OWNER}
+      APP_KEY: ${FIREFLY_APP_KEY}
+      DEFAULT_LANGUAGE: ${FIREFLY_DEFAULT_LANGUAGE:-ru_RU}
+      DEFAULT_LOCALE: ${FIREFLY_DEFAULT_LOCALE:-ru_RU}
+      TZ: ${FIREFLY_TZ:-Europe/Moscow}
+      TRUSTED_PROXIES: "**"
+      LOG_CHANNEL: ${FIREFLY_LOG_CHANNEL:-stack}
+      APP_LOG_LEVEL: ${FIREFLY_APP_LOG_LEVEL:-notice}
+      DB_CONNECTION: ${FIREFLY_DB_CONNECTION:-pgsql}
+      DB_HOST: ${FIREFLY_DB_HOST:-postgres}
+      DB_PORT: ${FIREFLY_DB_PORT:-5432}
+      DB_DATABASE: ${FIREFLY_DB_DATABASE:-firefly}
+      DB_USERNAME: ${FIREFLY_DB_USERNAME:-postgres}
+      DB_PASSWORD: ${FIREFLY_DB_PASSWORD}
+
+    volumes:
+      - firefly_uploads:/var/www/html/storage/upload
+
+    # For local testing — set FIREFLY_PORT=8080 in .env
+    ports:
+      - ${FIREFLY_PORT:-}:8080
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    networks:
+      - internal
+      - dokploy-network
+
+  firefly-cron:
+    image: alpine:3.21
+    restart: unless-stopped
+
+    depends_on:
+      - firefly-app
+
+    environment:
+      TZ: ${FIREFLY_TZ:-Europe/Moscow}
+      STATIC_CRON_TOKEN: ${FIREFLY_STATIC_CRON_TOKEN}
+
+    command: >
+      sh -c "
+      ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime;
+      echo '0 3 * * * wget -qO- http://firefly-app:8080/api/v1/cron/$$STATIC_CRON_TOKEN;echo' | crontab -;
+      crond -f -L /dev/stdout
+      "
+
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+
+    networks:
+      - internal
+
 volumes:
   postgres_data:
   redis_data:
   vikunja_files:
+  firefly_uploads:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
