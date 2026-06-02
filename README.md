@@ -295,6 +295,10 @@ Expect a healthy response on `/healthz` and a reachable MCP endpoint on `/mcp`.
 Then, from Hermes (pointed at `https://mcp-vikunja.dashboard.example.com/mcp`),
 create a Vikunja task and read it back to confirm end-to-end connectivity.
 
+Full env reference and step-by-step (token creation, the mandatory `/api/v1`
+suffix, tool-list check) — [`services/_mcp/README.md`](services/_mcp/README.md)
+→ **Vikunja MCP — setup**.
+
 ### Step 9 — Create the first accounts (and change Wger's default)
 
 Most services have **no default credentials** — you register the first user
