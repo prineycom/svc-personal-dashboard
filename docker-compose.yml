@@ -353,8 +353,9 @@ services:
       HABITS_STORAGE: DATABASE
       HABITS_USER_EMAIL: ${BEAVERHABITS_EMAIL:-}
 
+    # Bind mount — Docker named volumes have root ownership, container runs as nobody
     volumes:
-      - beaverhabits_data:/app/.user/
+      - ./data/beaverhabits:/app/.user/
 
     # For local testing — set BEAVERHABITS_PORT=8081 in .env
     ports:
@@ -378,7 +379,6 @@ volumes:
   wger_media:
   wger_celery_beat:
   linkding_data:
-  beaverhabits_data:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
