@@ -219,6 +219,9 @@ services:
       TZ: ${WGER_TZ:-Europe/Moscow}
       WGER_INSTANCE: ${WGER_INSTANCE:-https://wger.de}
       CSRF_TRUSTED_ORIGINS: ${WGER_CSRF_TRUSTED_ORIGINS:-http://fitness.priney.com}
+      # Must be "False" so entrypoint.sh runs collectstatic on startup
+      # (otherwise the wger_static volume stays empty -> nginx serves 404 for /static/).
+      DJANGO_DEBUG: ${WGER_DJANGO_DEBUG:-False}
       ALLOW_REGISTRATION: ${WGER_ALLOW_REGISTRATION:-True}
       ALLOW_GUEST_USERS: ${WGER_ALLOW_GUEST_USERS:-False}
       ALLOW_UPLOAD_VIDEOS: ${WGER_ALLOW_UPLOAD_VIDEOS:-True}
