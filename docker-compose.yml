@@ -535,7 +535,8 @@ services:
 
     environment:
       OPENTICKLY_BASE_URL: http://opentickly:8080
-      TOGGL_API_TOKEN: ${OPENTICKLY_MCP_TOKEN:-}   # .env namespace -> image var
+      TOGGL_API_TOKEN: ${OPENTICKLY_MCP_TOKEN:-}            # .env namespace -> server var
+      OPENTICKLY_WORKSPACE_ID: ${OPENTICKLY_MCP_WORKSPACE_ID:-}  # optional; empty = default
 
     expose:
       - "8000"
