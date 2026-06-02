@@ -13,7 +13,7 @@ table in [`docs/mcp/CONVENTIONS.md`](../../docs/mcp/CONVENTIONS.md) and
 | MCP | Wrapped package | Bridge? |
 |-----|-----------------|---------|
 | Vikunja ([#12](https://github.com/prineycom/svc-personal-dashboard/issues/12)) | `@democratize-technology/vikunja-mcp` | ✅ yes |
-| Wger ([#14](https://github.com/prineycom/svc-personal-dashboard/issues/14)) | `Juxsta/wger-mcp` | ✅ yes |
+| Wger ([#14](https://github.com/prineycom/svc-personal-dashboard/issues/14)) | `@juxsta/wger-mcp` ([setup](../wger/README.md)) | ✅ yes |
 | Firefly III ([#13](https://github.com/prineycom/svc-personal-dashboard/issues/13)) | — | ❌ native HTTP image |
 | Linkding ([#15](https://github.com/prineycom/svc-personal-dashboard/issues/15)) | — | ❌ native HTTP image |
 

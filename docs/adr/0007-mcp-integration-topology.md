@@ -36,7 +36,7 @@
 |--------|-------------|-----------|----------------------|
 | Vikunja | `democratize-technology/vikunja-mcp` (TS, полное покрытие) | stdio | **supergateway-обёртка**, свой образ |
 | Firefly III | `fabianonetto/mcp-server-firefly-iii` (66 tools) | **нативный HTTP/SSE** (`PORT`) | официальный образ `ghcr.io/...`, **без моста** |
-| Wger | `Juxsta/wger-mcp` (12 tools, TS) | stdio | **supergateway-обёртка**; риск: проверить настраиваемость URL self-hosted инстанса |
+| Wger | `@juxsta/wger-mcp` (9 tools, TS) | stdio | **supergateway-обёртка**; URL настраивается через `WGER_API_URL` (спайк #14 закрыт) |
 | Linkding | `chickenzord/linkding-mcp` (Go) | **нативный HTTP** (`BIND_ADDR`) | официальный образ `ghcr.io/...`, **без моста** |
 | BeaverHabits | свой (REST API `/api/v1/...` есть) | нативный HTTP (FastMCP) | свой образ Python |
 | OpenTickly | свой FastMCP поверх Toggl API v9 — **или** форк готового Toggl-MCP с override базового URL | нативный HTTP | свой образ Python |
@@ -45,7 +45,7 @@
 
 - В compose добавляется ~6 MCP-контейнеров. RAM-бюджет вырастет (оценить при реализации; supergateway-обёртки на Node — самые тяжёлые).
 - Для Vikunja и Wger нужен свой Dockerfile (готовых образов нет) поверх npx + supergateway.
-- Wger MCP — риск hardcoded публичного API URL; если URL не настраивается, форкнуть или написать свой.
+- Wger MCP — риск hardcoded публичного API URL снят: `@juxsta/wger-mcp` читает `WGER_API_URL` (спайк #14). Настройка — `services/wger/README.md`.
 - OpenTickly: Toggl-совместимость даёт шанс переиспользовать готовый Toggl-MCP, если он позволяет переопределить base URL; иначе свой FastMCP.
 - Каждый MCP-эндпоинт открыт без собственной авторизации — допустимо только за Tailscale. Если Hermes будет работать вне Tailscale, потребуется пересмотр.
 

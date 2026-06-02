@@ -16,7 +16,7 @@
 ### DD-2: Пакет `@juxsta/wger-mcp@1.1.1` (scoped, пин)
 
 **Decision:** `build.args.MCP_PKG: "@juxsta/wger-mcp@1.1.1"`.
-**Rationale:** Scoped-пакет от автора из тикета (12 tools, node≥18, npm latest 1.1.1). Bridge ставит его глобально на этапе сборки и резолвит через `npx -y`.
+**Rationale:** Scoped-пакет от автора из тикета (9 tools — проверено вживую; node≥18, npm latest 1.1.1). Bridge ставит его глобально на этапе сборки и резолвит через `npx -y`.
 **Alternative:** Unscoped `wger-mcp` на npm — отклонено: другой проект; `:latest` — отклонено: конвенция требует пин.
 
 ### DD-3: Upstream `http://wger-nginx/api/v2`
@@ -87,7 +87,7 @@
 
 - [Issue #14 — [wger] MCP через supergateway](https://github.com/prineycom/svc-personal-dashboard/issues/14)
 - [Epic #9](https://github.com/prineycom/svc-personal-dashboard/issues/9) · зависит от [#10](https://github.com/prineycom/svc-personal-dashboard/issues/10)
-- [Juxsta/wger-mcp (GitHub)](https://github.com/Juxsta/wger-mcp) · [@juxsta/wger-mcp (npm, 1.1.1)](https://www.npmjs.com/package/@juxsta/wger-mcp) — 12 tools, env: `WGER_API_KEY` / `WGER_API_URL`
+- [Juxsta/wger-mcp (GitHub)](https://github.com/Juxsta/wger-mcp) · [@juxsta/wger-mcp (npm, 1.1.1)](https://www.npmjs.com/package/@juxsta/wger-mcp) — 9 tools (проверено вживую; README заявляет 12), env: `WGER_API_KEY` / `WGER_API_URL`
 - [supergateway](https://github.com/supercorp-ai/supergateway)
 - `docs/mcp/CONVENTIONS.md` · `docs/adr/0007-mcp-integration-topology.md` · `CONTEXT.md` (термины `MCP Endpoint`, `Bridge`)
 - `services/_mcp/Dockerfile` · `services/_mcp/README.md` · `services/wger/nginx.conf`

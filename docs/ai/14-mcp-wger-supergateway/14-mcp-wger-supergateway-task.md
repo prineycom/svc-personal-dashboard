@@ -63,7 +63,7 @@ MCP-слой Blueprint: каждое self-hosted направление отда
 
 - [Issue #14 — [wger] MCP через supergateway](https://github.com/prineycom/svc-personal-dashboard/issues/14)
 - [Epic #9](https://github.com/prineycom/svc-personal-dashboard/issues/9) · зависит от [#10](https://github.com/prineycom/svc-personal-dashboard/issues/10)
-- [Juxsta/wger-mcp (GitHub)](https://github.com/Juxsta/wger-mcp) · [@juxsta/wger-mcp (npm, 1.1.1)](https://www.npmjs.com/package/@juxsta/wger-mcp) — 12 tools, env: `WGER_API_KEY` / `WGER_API_URL`
+- [Juxsta/wger-mcp (GitHub)](https://github.com/Juxsta/wger-mcp) · [@juxsta/wger-mcp (npm, 1.1.1)](https://www.npmjs.com/package/@juxsta/wger-mcp) — 9 tools (проверено вживую; README заявляет 12), env: `WGER_API_KEY` / `WGER_API_URL`
 - [supergateway](https://github.com/supercorp-ai/supergateway)
 - `docs/mcp/CONVENTIONS.md` · `docs/adr/0007-mcp-integration-topology.md` · `CONTEXT.md` (термины `MCP Endpoint`, `Bridge`)
 - `services/_mcp/Dockerfile` · `services/_mcp/README.md` · `services/wger/nginx.conf`
