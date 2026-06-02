@@ -201,6 +201,43 @@ services:
     networks:
       - internal
 
+  # ── Firefly III MCP (native HTTP/SSE) ──────────────────────────────────
+  mcp-firefly:
+    image: ghcr.io/fabianonetto/mcp-server-firefly-iii@sha256:46dce54fdca3f0b919052bad9bf04a17fb0d4deed63ee5a871eca1d3bbbf516a
+    restart: unless-stopped
+
+    depends_on:
+      firefly-app:
+        condition: service_started
+
+    environment:
+      FIREFLY_URL: http://firefly-app:8080
+      FIREFLY_TOKEN: ${FIREFLY_MCP_TOKEN:-}
+      PORT: "8000"
+
+    expose:
+      - "8000"
+
+    # For local testing — set FIREFLY_MCP_PORT in .env
+    ports:
+      - ${FIREFLY_MCP_PORT:-}:8000
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/openapi.json"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
   # ── Wger (Health/Fitness) ──────────────────────────────────────────────
   wger-web:
     image: wger/server:2.5
