@@ -152,7 +152,8 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
 > мапьте на ключи `<SVC>_MCP_*` в корневом `.env`.
 
 **Firefly III** использует тот же bridge — официальный образ только amd64, а
-npm-пакет мультиарх. Отличие от Vikunja — `MCP_PKG` и env-переменные пакета:
+npm-пакет мультиарх. Пошаговая настройка — [`firefly-iii.md`](firefly-iii.md).
+Отличие от Vikunja — `MCP_PKG` и env-переменные пакета:
 
 ```yaml
   mcp-firefly:
