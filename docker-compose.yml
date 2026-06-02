@@ -201,9 +201,14 @@ services:
     networks:
       - internal
 
-  # ── Firefly III MCP (native HTTP/SSE) ──────────────────────────────────
+  # ── Firefly III MCP (bridge: stdio npm pkg → HTTP) ─────────────────────
+  # Upstream ghcr image is amd64-only; the npm package is multi-arch, so on
+  # the Pi (arm64) we wrap it with the shared supergateway bridge instead.
   mcp-firefly:
-    image: ghcr.io/fabianonetto/mcp-server-firefly-iii@sha256:46dce54fdca3f0b919052bad9bf04a17fb0d4deed63ee5a871eca1d3bbbf516a
+    build:
+      context: ./services/_mcp
+      args:
+        MCP_PKG: "mcp-server-firefly-iii@3.0.0"
     restart: unless-stopped
 
     depends_on:
@@ -213,7 +218,6 @@ services:
     environment:
       FIREFLY_URL: http://firefly-app:8080
       FIREFLY_TOKEN: ${FIREFLY_MCP_TOKEN:-}
-      PORT: "8000"
 
     expose:
       - "8000"
@@ -223,7 +227,7 @@ services:
       - ${FIREFLY_MCP_PORT:-}:8000
 
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8000/openapi.json"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
       interval: 30s
       timeout: 5s
       retries: 5
