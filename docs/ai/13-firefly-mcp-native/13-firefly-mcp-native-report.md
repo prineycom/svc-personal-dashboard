@@ -2,15 +2,17 @@
 
 **Plan:** docs/ai/13-firefly-mcp-native/13-firefly-mcp-native-plan.md
 **Mode:** inline
-**Status:** ⚠️ partial
+**Status:** ✅ complete (после смены подхода native → bridge)
 
 ## Tasks
 
-| #   | Task                                      | Status   | Commit    | Concerns  |
-| --- | ----------------------------------------- | -------- | --------- | --------- |
-| 1   | Добавить сервис mcp-firefly               | ✅ DONE  | `7df3f00` | —         |
-| 2   | Поправить сниппет Firefly в CONVENTIONS.md | ✅ DONE  | `5265bb4` | —         |
-| 3   | Validation                                | ❌ FAILED | —         | see below |
+| #   | Task                                       | Status   | Commit    | Concerns          |
+| --- | ------------------------------------------ | -------- | --------- | ----------------- |
+| 1   | Добавить сервис mcp-firefly (native)       | ↩️ заменён | `7df3f00` | образ amd64-only  |
+| 2   | Поправить сниппет Firefly в CONVENTIONS.md | ↩️ заменён | `5265bb4` | пересмотрен        |
+| 3   | Validation                                 | ❌→✅     | —         | см. Resolution    |
+| 4   | Перевод mcp-firefly на bridge              | ✅ DONE  | `d472341` | —                 |
+| 5   | Обновление CONVENTIONS/ADR/CONTEXT/_mcp     | ✅ DONE  | `a573e25` | —                 |
 
 ## Validation
 
@@ -35,15 +37,46 @@
 
 Рекомендация: вариант 1 (bridge) — переиспользует готовый `services/_mcp/`, остаётся на официальном пакете, работает на arm64.
 
+## Resolution (native → bridge)
+
+Решение пользователя по блокеру — вариант 1 (bridge). Перед переходом bridge
+**проверен на arm64**:
+
+- `docker build --build-arg MCP_PKG=mcp-server-firefly-iii@3.0.0 ./services/_mcp` ✅ — собирается на Pi.
+- `GET /healthz` ✅ HTTP 200.
+- `POST /mcp` (initialize) ✅ HTTP 200, `text/event-stream`; дочерний процесс ответил `serverInfo: mcp-server-firefly-iii 3.0.0`, capabilities `tools`.
+- `docker compose config -q` ✅ — конфиг с `build:` валиден.
+
+`mcp-firefly` теперь bridge: `build: ./services/_mcp` + `MCP_PKG: mcp-server-firefly-iii@3.0.0`,
+env `FIREFLY_URL`/`FIREFLY_TOKEN` (без `PORT` — пакет остаётся stdio), health `/healthz`.
+URL для Hermes — `https://mcp-firefly.dashboard.example.com/mcp`.
+
+Изменения в native-коммитах (`7df3f00`, `5265bb4`) перекрыты, но оставлены в
+истории как след принятого и отменённого решения.
+
+## Финальная валидация
+
+- `docker compose config -q` ✅
+- bridge build (arm64) ✅
+- `GET /healthz` ✅ 200
+- `POST /mcp` initialize ✅ 200, `text/event-stream`
+
 ## Changes summary
 
-| File                     | Action   | Description                                                                  |
-| ------------------------ | -------- | ---------------------------------------------------------------------------- |
-| docker-compose.yml       | modified | Добавлен сервис `mcp-firefly` (native образ, `@sha256:`, health `/openapi.json`) |
-| .env.example             | modified | Комментарий: `FIREFLY_MCP_TOKEN` — Firefly Personal Access Token             |
-| docs/mcp/CONVENTIONS.md  | modified | §6 Firefly: пин по дайджесту, health `/openapi.json`; §3: примечание про `/sse` |
+| File                                        | Action   | Description                                                                  |
+| ------------------------------------------- | -------- | ---------------------------------------------------------------------------- |
+| docker-compose.yml                          | modified | Сервис `mcp-firefly` — bridge (`services/_mcp`, `MCP_PKG`), health `/healthz` |
+| .env.example                                | modified | Комментарий: `FIREFLY_MCP_TOKEN` — Firefly Personal Access Token             |
+| docs/mcp/CONVENTIONS.md                     | modified | Firefly → bridge: транспортная таблица, сноска про amd64, §6 сниппет          |
+| services/_mcp/README.md                     | modified | Таблица «who uses it»: Firefly → bridge; критерий native/bridge уточнён       |
+| services/_mcp/Dockerfile                    | modified | Комментарий: Firefly в bridge (образ amd64-only)                             |
+| docs/adr/0007-mcp-integration-topology.md   | modified | Решение #2 и таблица: Firefly → bridge; Update (2026-06-02, #13)             |
+| CONTEXT.md                                  | modified | Глоссарий Bridge + решения «Топология»/«Финансы»: Firefly → bridge           |
 
 ## Commits
 
-- `7df3f00` #13 feat(13-firefly-mcp-native): add mcp-firefly native HTTP service
-- `5265bb4` #13 docs(13-firefly-mcp-native): correct firefly native snippet
+- `7df3f00` #13 feat(13-firefly-mcp-native): add mcp-firefly native HTTP service _(перекрыт)_
+- `5265bb4` #13 docs(13-firefly-mcp-native): correct firefly native snippet _(перекрыт)_
+- `c05d6e1` #13 docs(13-firefly-mcp-native): add execution report
+- `d472341` #13 fix(13-firefly-mcp-native): bridge mcp-firefly for arm64 (image is amd64-only)
+- `a573e25` #13 docs(13-firefly-mcp-native): record firefly bridge pivot in conventions, ADR, context
