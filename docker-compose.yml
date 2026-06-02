@@ -435,7 +435,7 @@ services:
 
     depends_on:
       wger-nginx:
-        condition: service_started
+        condition: service_healthy
 
     environment:
       WGER_API_URL: http://wger-nginx/api/v2    # internal upstream, not wger.de
