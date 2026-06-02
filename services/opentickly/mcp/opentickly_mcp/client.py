@@ -56,9 +56,7 @@ class TogglClient:
         me = await self.me()
         workspace_id = me.get("default_workspace_id")
         if not workspace_id:
-            raise TogglError(
-                "no default_workspace_id from /api/v9/me; set OPENTICKLY_WORKSPACE_ID"
-            )
+            raise TogglError("no default_workspace_id from /api/v9/me; set OPENTICKLY_WORKSPACE_ID")
         return int(workspace_id)
 
     async def start_time_entry(
