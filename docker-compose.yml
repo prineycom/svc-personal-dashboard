@@ -130,6 +130,15 @@ services:
       - internal
       - dokploy-network
 
+    # Traefik routing for the domain (HTTP only — the domain points at a
+    # Tailscale 100.x IP, so Let's Encrypt HTTP-01 can't validate it).
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.vikunja-web.rule=Host(`tasks.priney.com`)
+      - traefik.http.routers.vikunja-web.entrypoints=web
+      - traefik.http.services.vikunja-web.loadbalancer.server.port=3456
+      - traefik.docker.network=dokploy-network
+
   # ── Firefly III (Finances) ─────────────────────────────────────────────
   firefly-app:
     image: fireflyiii/core:version-6.6.3
