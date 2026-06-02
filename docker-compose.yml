@@ -428,6 +428,11 @@ services:
 
     environment:
       LD_CSRF_TRUSTED_ORIGINS: ${LD_CSRF_TRUSTED_ORIGINS:-http://bookmarks.priney.com}
+      # Linkding has no signup page; it auto-creates this superuser on startup
+      # when LD_SUPERUSER_NAME is non-empty. Leave empty to manage users by hand
+      # (docker exec ... python manage.py createsuperuser).
+      LD_SUPERUSER_NAME: ${LD_SUPERUSER_NAME:-}
+      LD_SUPERUSER_PASSWORD: ${LD_SUPERUSER_PASSWORD:-}
 
     volumes:
       - linkding_data:/etc/linkding/data

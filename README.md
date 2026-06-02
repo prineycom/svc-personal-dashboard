@@ -188,8 +188,10 @@ WGER_SIGNING_KEY=<random>
 WGER_DJANGO_DB_PASSWORD=<strong-random>
 WGER_CSRF_TRUSTED_ORIGINS=http://fitness.example.com # MUST match the domain
 
-# Linkding
+# Linkding (no signup page — these auto-create the first user on startup)
 LD_CSRF_TRUSTED_ORIGINS=http://bookmarks.example.com # MUST match the domain
+LD_SUPERUSER_NAME=admin
+LD_SUPERUSER_PASSWORD=<strong-random>
 ```
 
 The `*_PORT` variables (e.g. `VIKUNJA_PORT=3456`) are **optional**. Setting one
@@ -253,6 +255,36 @@ Then open each subdomain in a browser on a tailnet device. If a name does not
 resolve, flush the client DNS cache (macOS:
 `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`).
 
+### Step 9 — Create the first accounts (and change Wger's default)
+
+Most services have **no default credentials** — you register the first user
+through the web UI, and that user becomes the owner/admin. Two exceptions:
+
+| Service | First login | Action |
+|---------|-------------|--------|
+| **Wger** | Ships a built-in **`admin` / `adminadmin`** | **Change it immediately** — log in and change the password, or run the command below |
+| **Linkding** | No signup page; **no user exists** until you create one | Set `LD_SUPERUSER_NAME` / `LD_SUPERUSER_PASSWORD` (auto-created on startup) or run `createsuperuser` |
+| Vikunja | Open registration | Register the first account |
+| Firefly III | First registered account becomes owner | Register the first account |
+| OpenTickly | Registration via UI | Register the first account |
+| BeaverHabits | Signup of the first user | Register the first account |
+
+Change the Wger default password:
+
+```bash
+docker exec -it <wger-web> sh -c 'cd /home/wger/src && python3 manage.py changepassword admin'
+```
+
+Create a Linkding user by hand (if you did not set `LD_SUPERUSER_*`):
+
+```bash
+docker exec -it <linkding> python manage.py createsuperuser
+```
+
+> The stack sits behind Tailscale, so these accounts are not exposed to the
+> public internet — but `admin/adminadmin` is still a well-known default and
+> should not survive first boot.
+
 ---
 
 ## 4. Service-specific notes
@@ -274,7 +306,9 @@ reasoning is not lost.
     redeploy that gives `wger-web` a new IP leaves nginx stuck on the dead
     address — **502 "No route to host"** until nginx is restarted.
   - `CSRF_TRUSTED_ORIGINS` must include the domain or login returns 403.
-- **Linkding** — `LD_CSRF_TRUSTED_ORIGINS` must include the domain for login.
+- **Linkding** — `LD_CSRF_TRUSTED_ORIGINS` must include the domain for login;
+  it has no signup page, so set `LD_SUPERUSER_NAME` / `LD_SUPERUSER_PASSWORD`
+  to auto-create the first user (see Step 9).
 - **OpenTickly** — route to internal port `8080` (see Step 6).
 
 ---
