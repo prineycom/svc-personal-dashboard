@@ -130,15 +130,6 @@ services:
       - internal
       - dokploy-network
 
-    # Traefik routing for the domain (HTTP only — the domain points at a
-    # Tailscale 100.x IP, so Let's Encrypt HTTP-01 can't validate it).
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.vikunja-web.rule=Host(`tasks.priney.com`)
-      - traefik.http.routers.vikunja-web.entrypoints=web
-      - traefik.http.services.vikunja-web.loadbalancer.server.port=3456
-      - traefik.docker.network=dokploy-network
-
   # ── Firefly III (Finances) ─────────────────────────────────────────────
   firefly-app:
     image: fireflyiii/core:version-6.6.3
@@ -183,13 +174,6 @@ services:
     networks:
       - internal
       - dokploy-network
-
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.firefly-web.rule=Host(`finance.priney.com`)
-      - traefik.http.routers.firefly-web.entrypoints=web
-      - traefik.http.services.firefly-web.loadbalancer.server.port=8080
-      - traefik.docker.network=dokploy-network
 
   firefly-cron:
     image: alpine:3.21
@@ -318,13 +302,6 @@ services:
     networks:
       - internal
       - dokploy-network
-
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.wger-web.rule=Host(`fitness.priney.com`)
-      - traefik.http.routers.wger-web.entrypoints=web
-      - traefik.http.services.wger-web.loadbalancer.server.port=80
-      - traefik.docker.network=dokploy-network
 
   wger-celery-worker:
     image: wger/server:2.5
@@ -465,13 +442,6 @@ services:
       - internal
       - dokploy-network
 
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.linkding-web.rule=Host(`bookmarks.priney.com`)
-      - traefik.http.routers.linkding-web.entrypoints=web
-      - traefik.http.services.linkding-web.loadbalancer.server.port=9090
-      - traefik.docker.network=dokploy-network
-
   # ── BeaverHabits (Habits) ──────────────────────────────────────────────
   beaverhabits:
     image: daya0576/beaverhabits:0.9.1
@@ -497,13 +467,6 @@ services:
     networks:
       - internal
       - dokploy-network
-
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.beaverhabits-web.rule=Host(`habits.priney.com`)
-      - traefik.http.routers.beaverhabits-web.entrypoints=web
-      - traefik.http.services.beaverhabits-web.loadbalancer.server.port=8080
-      - traefik.docker.network=dokploy-network
 
   # ── OpenTickly (Time Tracker) ──────────────────────────────────────────
   opentickly:
@@ -541,13 +504,6 @@ services:
     networks:
       - internal
       - dokploy-network
-
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.opentickly-web.rule=Host(`time.priney.com`)
-      - traefik.http.routers.opentickly-web.entrypoints=web
-      - traefik.http.services.opentickly-web.loadbalancer.server.port=8080
-      - traefik.docker.network=dokploy-network
 
 volumes:
   postgres_data:
