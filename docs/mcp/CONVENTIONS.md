@@ -37,6 +37,10 @@
 - **Без `ports:`** — кроме escape-hatch `${<SVC>_MCP_PORT:-}:8000` для локального теста (на Dokploy пусто).
 - Поддомен `mcp-<svc>.dashboard.example.com` → порт `8000` регистрируется **в Dokploy UI**.
   **Traefik-labels в compose не добавляем** — источник роутинга Dokploy UI (как у всех сервисов).
+- **Путь эндпоинта.** supergateway отдаёт streamable-HTTP по умолчанию на `/mcp`
+  (меняется флагом `--streamableHttpPath`), health — на `/healthz`. Полный URL,
+  который регистрируется в Hermes: `https://mcp-<svc>.dashboard.example.com/mcp`.
+  Native-образы могут использовать свой путь — сверяйтесь с README образа.
 - Защита — Tailscale; собственной авторизации на MCP-эндпоинте нет.
 - **MCP → свой сервис** ходит по `internal` (внутреннее имя хоста), не через публичный URL. Наружу через Tailscale выходит только Hermes → MCP.
 

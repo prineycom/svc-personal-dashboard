@@ -54,7 +54,9 @@ Add a service to the root `docker-compose.yml`:
 ```
 
 Then register the subdomain `mcp-vikunja.dashboard.example.com` → container
-port `8000` **in the Dokploy UI** (do not add Traefik labels to compose).
+port `8000` **in the Dokploy UI** (do not add Traefik labels to compose). The
+streamable-HTTP endpoint defaults to `/mcp`, so Hermes connects to
+`https://mcp-vikunja.dashboard.example.com/mcp`; health is at `/healthz`.
 
 The exact env-var names depend on the wrapped package — check its README and
 map them onto the `<SERVICE>_MCP_*` keys in the root `.env`.
