@@ -12,6 +12,7 @@ read from the environment:
 
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any
 
@@ -55,6 +56,7 @@ class BeaverHabitsClient:
             else os.environ.get("BEAVERHABITS_MCP_PASSWORD", "")
         )
         self._token: str | None = None
+        self._lock = asyncio.Lock()
         self._client = httpx.AsyncClient(base_url=self._base_url, timeout=30.0)
 
     async def login(self) -> str:
@@ -111,18 +113,34 @@ class BeaverHabitsClient:
         Injects ``Authorization: Bearer <token>`` (logging in first if no token
         is cached). If the response is ``401`` the token is discarded, a fresh
         login is performed, and the request is retried exactly once.
+
+        Token refresh is guarded by an :class:`asyncio.Lock` with
+        double-checked locking so that concurrent in-flight requests share a
+        single ``/auth/login`` instead of each firing a redundant one.
         """
         if self._token is None:
-            await self.login()
+            await self._refresh_token(None)
 
+        token = self._token
         response = await self._send(method, path, **kwargs)
         if response.status_code == httpx.codes.UNAUTHORIZED:
-            self._token = None
-            await self.login()
+            await self._refresh_token(token)
             response = await self._send(method, path, **kwargs)
 
         response.raise_for_status()
         return response
+
+    async def _refresh_token(self, stale_token: str | None) -> None:
+        """Log in once even under concurrent callers (double-checked locking).
+
+        ``stale_token`` is the token value the caller already tried (or
+        ``None`` for the initial login). The lock is acquired and the cached
+        token re-checked: a fresh login is only performed if another coroutine
+        has not already replaced ``stale_token`` with a newer token.
+        """
+        async with self._lock:
+            if self._token is None or self._token == stale_token:
+                await self.login()
 
     async def _send(
         self,

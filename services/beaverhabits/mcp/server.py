@@ -9,6 +9,8 @@ Run directly to serve the MCP at ``/mcp`` on ``0.0.0.0:8000``.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import date as date_cls
 from typing import Any
 
@@ -20,8 +22,19 @@ from client import BeaverHabitsClient
 
 DATE_FMT = "%d-%m-%Y"
 
-mcp: FastMCP = FastMCP("beaverhabits")
 _client = BeaverHabitsClient()
+
+
+@asynccontextmanager
+async def lifespan(_server: FastMCP) -> AsyncIterator[None]:
+    """Close the shared client's HTTP pool when the server shuts down."""
+    try:
+        yield
+    finally:
+        await _client.aclose()
+
+
+mcp: FastMCP = FastMCP(name="beaverhabits", lifespan=lifespan)
 
 
 async def _list_habits() -> list[dict[str, Any]]:
