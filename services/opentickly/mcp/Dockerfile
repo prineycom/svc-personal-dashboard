@@ -1,6 +1,7 @@
 # Native FastMCP image for OpenTickly. Streamable-HTTP on :8000 (/mcp),
-# health at /healthz. Pin the base — never :latest (see docs/mcp/CONVENTIONS.md).
-FROM python:3.12-slim
+# health at /healthz. Pin the base by digest — never :latest (see
+# docs/mcp/CONVENTIONS.md). Tag kept for readability; digest is authoritative.
+FROM python:3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \

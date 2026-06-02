@@ -24,6 +24,7 @@ class TogglError(RuntimeError):
 class TogglClient:
     def __init__(self, config: Config, client: httpx.AsyncClient | None = None) -> None:
         self._config = config
+        self._resolved_workspace_id: int | None = config.workspace_id
         self._client = client or httpx.AsyncClient(
             base_url=config.base_url,
             auth=(config.api_token, "api_token"),
@@ -51,13 +52,14 @@ class TogglClient:
         return await self._request("GET", "/api/v9/me")
 
     async def resolve_workspace_id(self) -> int:
-        if self._config.workspace_id is not None:
-            return self._config.workspace_id
+        if self._resolved_workspace_id is not None:
+            return self._resolved_workspace_id
         me = await self.me()
         workspace_id = me.get("default_workspace_id")
         if not workspace_id:
             raise TogglError("no default_workspace_id from /api/v9/me; set OPENTICKLY_WORKSPACE_ID")
-        return int(workspace_id)
+        self._resolved_workspace_id = int(workspace_id)
+        return self._resolved_workspace_id
 
     async def start_time_entry(
         self,
