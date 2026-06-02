@@ -46,6 +46,27 @@ Supporting containers (no public route): `postgres`, `redis`, `firefly-cron`,
 `wger-web`, `wger-celery-worker`, `wger-celery-beat`. **12 containers total**,
 ~900 MB idle / ~1.3 GB peak on an 8 GB Pi 5.
 
+### MCP layer (stage 2 — Hermes integration)
+
+Each direction is exposed to the **Hermes** AI agent as a Model Context Protocol
+server: one `mcp-<svc>` container per service, serving streamable-HTTP on port
+`8000` behind the `mcp-<svc>.dashboard.example.com` subdomain (Tailscale-private,
+routed in the Dokploy UI like everything else). An MCP talks to its own service
+over the `internal` network; only Hermes → MCP crosses the tailnet.
+
+| MCP | Source | Transport |
+|-----|--------|-----------|
+| `mcp-vikunja` | `@democratize-technology/vikunja-mcp` | bridge (supergateway) |
+| `mcp-firefly` | `ghcr.io/fabianonetto/mcp-server-firefly-iii` | native HTTP image |
+| `mcp-wger` | `Juxsta/wger-mcp` | bridge (supergateway) |
+| `mcp-linkding` | `ghcr.io/chickenzord/linkding-mcp` | native HTTP image |
+| `mcp-beaverhabits` | own FastMCP | native HTTP |
+| `mcp-opentickly` | own FastMCP / Toggl-MCP fork | native HTTP |
+
+Conventions and copy-ready compose snippets: [`docs/mcp/CONVENTIONS.md`](docs/mcp/CONVENTIONS.md).
+Decision record: [`docs/adr/0007-mcp-integration-topology.md`](docs/adr/0007-mcp-integration-topology.md).
+The reusable stdio→HTTP bridge image lives in [`services/_mcp/`](services/_mcp/).
+
 ### Networks
 
 - **`dokploy-network`** (external, created by Dokploy) — every web-facing
