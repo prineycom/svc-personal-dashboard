@@ -453,13 +453,16 @@ services:
   # ── BeaverHabits (Habits) ──────────────────────────────────────────────
   beaverhabits:
     image: daya0576/beaverhabits:0.9.1
+    user: "0:0"  # run as root: the image runs as nobody(65534), but Docker auto-creates
+                 # the bind-mount dir as root, so nobody can't write the SQLite db
+                 # ("attempt to write a readonly database"). Root writes regardless.
     restart: unless-stopped
 
     environment:
       HABITS_STORAGE: DATABASE
       HABITS_USER_EMAIL: ${BEAVERHABITS_EMAIL:-}
 
-    # Bind mount — Docker named volumes have root ownership, container runs as nobody
+    # SQLite lives here (bind mount, so the db survives container recreation).
     volumes:
       - ./data/beaverhabits:/app/.user/
 
