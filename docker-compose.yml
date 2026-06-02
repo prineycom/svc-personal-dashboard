@@ -370,6 +370,43 @@ services:
       - internal
       - dokploy-network
 
+  # ── OpenTickly (Time Tracker) ──────────────────────────────────────────
+  opentickly:
+    image: correctroad/opentoggl:latest
+    restart: unless-stopped
+
+    environment:
+      OPENTOGGL_SERVICE_NAME: opentickly
+      PORT: "8080"
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/opentickly?sslmode=disable
+      REDIS_URL: redis://redis:6379/3
+      OPENTOGGL_FILESTORE_NAMESPACE: opentickly
+      OPENTOGGL_JOBS_QUEUE_NAME: default
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+    ports:
+      - ${OPENTICKLY_PORT:-}:8080
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    networks:
+      - internal
+      - dokploy-network
+
 volumes:
   postgres_data:
   redis_data:
