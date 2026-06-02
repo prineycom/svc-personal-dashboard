@@ -41,6 +41,10 @@
   (меняется флагом `--streamableHttpPath`), health — на `/healthz`. Полный URL,
   который регистрируется в Hermes: `https://mcp-<svc>.dashboard.example.com/mcp`.
   Native-образы могут использовать свой путь — сверяйтесь с README образа.
+  Например, Firefly III (`fabianonetto/mcp-server-firefly-iii`) отдаёт **SSE**:
+  транспорт на `GET /sse` + `POST /messages`, дедицированного `/healthz` нет
+  (healthcheck бьёт `GET /openapi.json`). URL для Hermes —
+  `https://mcp-firefly.dashboard.example.com/sse`.
 - Защита — Tailscale; собственной авторизации на MCP-эндпоинте нет.
 - **MCP → свой сервис** ходит по `internal` (внутреннее имя хоста), не через публичный URL. Наружу через Tailscale выходит только Hermes → MCP.
 
@@ -79,7 +83,7 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
 
 ```yaml
   mcp-firefly:
-    image: ghcr.io/fabianonetto/mcp-server-firefly-iii:<pin>
+    image: ghcr.io/fabianonetto/mcp-server-firefly-iii@sha256:46dce54fdca3f0b919052bad9bf04a17fb0d4deed63ee5a871eca1d3bbbf516a
     restart: unless-stopped
     depends_on:
       firefly-app:
@@ -93,7 +97,7 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
     ports:
       - ${FIREFLY_MCP_PORT:-}:8000
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/openapi.json"]
       interval: 30s
       timeout: 5s
       retries: 5
