@@ -95,3 +95,39 @@ committed token).
   is the intended version; 3.4.3 is available but belongs to the shared image's scope.
 - At deploy, set a real `VIKUNJA_MCP_TOKEN` and complete the documented Dokploy-UI
   and Hermes registration before relying on the endpoint.
+
+## Live verification (2026-06-02)
+
+Ran the bridge against the live Vikunja (`vikunja:3456`, healthy) on the running
+stack's `*-internal` network.
+
+**Verified working:**
+
+- Image builds; `docker compose config` renders `mcp-vikunja` with both networks.
+- supergateway starts; `/healthz` → `ok`; container reaches `vikunja:3456/api/v1`.
+- MCP `initialize` → `serverInfo: vikunja-mcp`; child logs
+  `Auto-authenticating with Vikunja … Using detected auth type: api-token … server started`.
+- `tools/list` exposes the full tool set: `vikunja_tasks`, `vikunja_projects`,
+  `vikunja_labels`, `vikunja_teams`, `vikunja_filters`, `vikunja_templates`,
+  `vikunja_webhooks`, `vikunja_batch_import`, `vikunja_auth`.
+
+**Bug found and fixed (`996ab82`):**
+
+- The shared bridge `CMD` used `npx -y "${MCP_PKG}"`, which contacts
+  `registry.npmjs.org` on every cold start and fails on the egress-less
+  `internal` network (`npm error code EAI_AGAIN`), exiting the stdio child.
+  Replaced with `npx --no-install "${MCP_PKG%@*}"` so npx runs the
+  globally-installed package offline. Re-verified on an **internal-only**
+  network: `/healthz` ok and `tools/list` returns all tools with zero registry
+  contact.
+
+**Open robustness note (not fixed):**
+
+- supergateway 3.4.0 stateless mode throws `No connection established for
+  request ID` and exits the whole process when a child reply arrives after the
+  client disconnected. `restart: unless-stopped` recovers it, and the offline
+  fix removes the slow-start that mainly triggered it. Re-check against
+  supergateway 3.4.3 when the shared image bumps.
+
+**Not verified:** authenticated CRUD (create/read a task) — needs a real
+`VIKUNJA_MCP_TOKEN`; testing stopped at the auth boundary by choice.
