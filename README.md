@@ -310,10 +310,10 @@ reasoning is not lost.
   it has no signup page, so set `LD_SUPERUSER_NAME` / `LD_SUPERUSER_PASSWORD`
   to auto-create the first user (see Step 9).
 - **OpenTickly** — route to internal port `8080` (see Step 6).
-- **BeaverHabits** — runs as `user: "0:0"` (root). Its SQLite db lives in a bind
-  mount (`./data/beaverhabits`), which Docker auto-creates owned by root; the
-  image's default `nobody` user then can't write it (`attempt to write a
-  readonly database`). Running as root sidesteps that.
+- **BeaverHabits** — its SQLite db lives in the named volume `beaverhabits_data`
+  (persists across redeploys, like the other services). The image defaults to
+  the `nobody` user, which cannot write a root-owned volume (`attempt to write a
+  readonly database`), so the service runs as `user: "0:0"` (root) instead.
 
 ---
 
@@ -339,7 +339,7 @@ reasoning is not lost.
 | `502 "No route to host"` after a redeploy (Wger) | nginx cached a stale upstream IP | Already mitigated by the runtime resolver in `nginx.conf`; if it recurs, `docker restart <wger-nginx>` |
 | `/static/` returns 404 (Wger) | `collectstatic` did not run | Ensure `DJANGO_DEBUG=False`; one-off: `docker exec <wger-web> sh -c 'cd /home/wger/src && python3 manage.py collectstatic --noinput'` |
 | Page loads but login/POST fails (403) | Missing/incorrect public-URL or CSRF env | Set `*_PUBLICURL` / `APP_URL` / `*CSRF_TRUSTED_ORIGINS` to the domain |
-| `attempt to write a readonly database` (BeaverHabits) | Bind-mount dir owned by root, container user `nobody` can't write | Run as `user: "0:0"` (already set), or `chown -R 65534:65534 data/beaverhabits` |
+| `attempt to write a readonly database` (BeaverHabits) | Container user `nobody` can't write the root-owned volume | Run as `user: "0:0"` (already set) |
 | Firefly register does nothing / `$ is not defined` | Password < 16 chars; the broken register.js (upstream) just hides the inline error | Use a password of **≥ 16 characters** |
 | Domain resolves on the host but not on a laptop | Device not on the tailnet, or stale DNS cache | Join the tailnet; flush client DNS |
 | Two routers per host in Traefik | Domain defined in both UI and compose labels | Remove one source (keep the UI) |

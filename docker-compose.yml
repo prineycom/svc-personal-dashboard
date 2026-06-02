@@ -462,9 +462,12 @@ services:
       HABITS_STORAGE: DATABASE
       HABITS_USER_EMAIL: ${BEAVERHABITS_EMAIL:-}
 
-    # SQLite lives here (bind mount, so the db survives container recreation).
+    # SQLite lives here. Named volume (like the other services) so the data
+    # survives redeploys independently of the Dokploy git-clone dir. Works
+    # because the container runs as root (user: "0:0") and can write the
+    # root-owned volume.
     volumes:
-      - ./data/beaverhabits:/app/.user/
+      - beaverhabits_data:/app/.user/
 
     # For local testing — set BEAVERHABITS_PORT=8081 in .env
     ports:
@@ -525,6 +528,7 @@ volumes:
   wger_media:
   wger_celery_beat:
   linkding_data:
+  beaverhabits_data:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
