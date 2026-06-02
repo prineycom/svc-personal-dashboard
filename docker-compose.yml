@@ -34,8 +34,8 @@ services:
       - ${DB_PUBLIC_PORT:-}:5432
 
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme-postgres}
       # Databases are created at runtime — each service's app creates its own DB.
 
     volumes:
@@ -43,7 +43,7 @@ services:
       - ./services/infra/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -98,10 +98,10 @@ services:
     environment:
       VIKUNJA_DATABASE_TYPE: ${VIKUNJA_DATABASE_TYPE:-postgres}
       VIKUNJA_DATABASE_HOST: ${VIKUNJA_DATABASE_HOST:-postgres}
-      VIKUNJA_DATABASE_USER: ${VIKUNJA_DATABASE_USER}
-      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DATABASE_PASSWORD}
-      VIKUNJA_DATABASE_DATABASE: ${VIKUNJA_DATABASE_DATABASE}
-      VIKUNJA_SERVICE_SECRET: ${VIKUNJA_SERVICE_SECRET}
+      VIKUNJA_DATABASE_USER: ${VIKUNJA_DATABASE_USER:-postgres}
+      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DATABASE_PASSWORD:-${POSTGRES_PASSWORD}}
+      VIKUNJA_DATABASE_DATABASE: ${VIKUNJA_DATABASE_DATABASE:-vikunja}
+      VIKUNJA_SERVICE_SECRET: ${VIKUNJA_SERVICE_SECRET:-changeme-vikunja-secret}
       VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_SERVICE_PUBLICURL:-http://localhost:3456}
 
     volumes:
@@ -143,8 +143,8 @@ services:
     environment:
       APP_ENV: ${FIREFLY_APP_ENV:-production}
       APP_DEBUG: ${FIREFLY_APP_DEBUG:-false}
-      SITE_OWNER: ${FIREFLY_SITE_OWNER}
-      APP_KEY: ${FIREFLY_APP_KEY}
+      SITE_OWNER: ${FIREFLY_SITE_OWNER:-admin@localhost}
+      APP_KEY: ${FIREFLY_APP_KEY:-base64:changeme-firefly-app-key-must-be-32chars}
       DEFAULT_LANGUAGE: ${FIREFLY_DEFAULT_LANGUAGE:-ru_RU}
       DEFAULT_LOCALE: ${FIREFLY_DEFAULT_LOCALE:-ru_RU}
       TZ: ${FIREFLY_TZ:-Europe/Moscow}
@@ -156,7 +156,7 @@ services:
       DB_PORT: ${FIREFLY_DB_PORT:-5432}
       DB_DATABASE: ${FIREFLY_DB_DATABASE:-firefly}
       DB_USERNAME: ${FIREFLY_DB_USERNAME:-postgres}
-      DB_PASSWORD: ${FIREFLY_DB_PASSWORD}
+      DB_PASSWORD: ${FIREFLY_DB_PASSWORD:-${POSTGRES_PASSWORD}}
 
     volumes:
       - firefly_uploads:/var/www/html/storage/upload
@@ -183,7 +183,7 @@ services:
 
     environment:
       TZ: ${FIREFLY_TZ:-Europe/Moscow}
-      STATIC_CRON_TOKEN: ${FIREFLY_STATIC_CRON_TOKEN}
+      STATIC_CRON_TOKEN: ${FIREFLY_STATIC_CRON_TOKEN:-changeme-cron-token}
 
     command: >
       sh -c "
@@ -212,8 +212,8 @@ services:
         condition: service_healthy
 
     environment:
-      SECRET_KEY: ${WGER_SECRET_KEY}
-      SIGNING_KEY: ${WGER_SIGNING_KEY}
+      SECRET_KEY: ${WGER_SECRET_KEY:-changeme-secret-key-change-me}
+      SIGNING_KEY: ${WGER_SIGNING_KEY:-changeme-signing-key-change-me}
       TIME_ZONE: ${WGER_TIME_ZONE:-Europe/Moscow}
       TZ: ${WGER_TZ:-Europe/Moscow}
       WGER_INSTANCE: ${WGER_INSTANCE:-https://wger.de}
@@ -236,7 +236,7 @@ services:
       DJANGO_DB_ENGINE: ${WGER_DJANGO_DB_ENGINE:-django.db.backends.postgresql}
       DJANGO_DB_DATABASE: ${WGER_DJANGO_DB_DATABASE:-wger}
       DJANGO_DB_USER: ${WGER_DJANGO_DB_USER:-postgres}
-      DJANGO_DB_PASSWORD: ${WGER_DJANGO_DB_PASSWORD}
+      DJANGO_DB_PASSWORD: ${WGER_DJANGO_DB_PASSWORD:-${POSTGRES_PASSWORD}}
       DJANGO_DB_HOST: ${WGER_DJANGO_DB_HOST:-postgres}
       DJANGO_DB_PORT: ${WGER_DJANGO_DB_PORT:-5432}
       DJANGO_PERFORM_MIGRATIONS: ${WGER_DJANGO_PERFORM_MIGRATIONS:-True}
@@ -307,8 +307,8 @@ services:
     restart: unless-stopped
 
     environment:
-      SECRET_KEY: ${WGER_SECRET_KEY}
-      SIGNING_KEY: ${WGER_SIGNING_KEY}
+      SECRET_KEY: ${WGER_SECRET_KEY:-changeme-secret-key-change-me}
+      SIGNING_KEY: ${WGER_SIGNING_KEY:-changeme-signing-key-change-me}
       TIME_ZONE: ${WGER_TIME_ZONE:-Europe/Moscow}
       TZ: ${WGER_TZ:-Europe/Moscow}
       WGER_INSTANCE: ${WGER_INSTANCE:-https://wger.de}
@@ -331,7 +331,7 @@ services:
       DJANGO_DB_ENGINE: ${WGER_DJANGO_DB_ENGINE:-django.db.backends.postgresql}
       DJANGO_DB_DATABASE: ${WGER_DJANGO_DB_DATABASE:-wger}
       DJANGO_DB_USER: ${WGER_DJANGO_DB_USER:-postgres}
-      DJANGO_DB_PASSWORD: ${WGER_DJANGO_DB_PASSWORD}
+      DJANGO_DB_PASSWORD: ${WGER_DJANGO_DB_PASSWORD:-${POSTGRES_PASSWORD}}
       DJANGO_DB_HOST: ${WGER_DJANGO_DB_HOST:-postgres}
       DJANGO_DB_PORT: ${WGER_DJANGO_DB_PORT:-5432}
       DJANGO_PERFORM_MIGRATIONS: ${WGER_DJANGO_PERFORM_MIGRATIONS:-True}
@@ -368,8 +368,8 @@ services:
     restart: unless-stopped
 
     environment:
-      SECRET_KEY: ${WGER_SECRET_KEY}
-      SIGNING_KEY: ${WGER_SIGNING_KEY}
+      SECRET_KEY: ${WGER_SECRET_KEY:-changeme-secret-key-change-me}
+      SIGNING_KEY: ${WGER_SIGNING_KEY:-changeme-signing-key-change-me}
       TIME_ZONE: ${WGER_TIME_ZONE:-Europe/Moscow}
       TZ: ${WGER_TZ:-Europe/Moscow}
       WGER_INSTANCE: ${WGER_INSTANCE:-https://wger.de}
@@ -392,7 +392,7 @@ services:
       DJANGO_DB_ENGINE: ${WGER_DJANGO_DB_ENGINE:-django.db.backends.postgresql}
       DJANGO_DB_DATABASE: ${WGER_DJANGO_DB_DATABASE:-wger}
       DJANGO_DB_USER: ${WGER_DJANGO_DB_USER:-postgres}
-      DJANGO_DB_PASSWORD: ${WGER_DJANGO_DB_PASSWORD}
+      DJANGO_DB_PASSWORD: ${WGER_DJANGO_DB_PASSWORD:-${POSTGRES_PASSWORD}}
       DJANGO_DB_HOST: ${WGER_DJANGO_DB_HOST:-postgres}
       DJANGO_DB_PORT: ${WGER_DJANGO_DB_PORT:-5432}
       DJANGO_PERFORM_MIGRATIONS: ${WGER_DJANGO_PERFORM_MIGRATIONS:-True}
