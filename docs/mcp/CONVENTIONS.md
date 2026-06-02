@@ -41,6 +41,9 @@
   (меняется флагом `--streamableHttpPath`), health — на `/healthz`. Полный URL,
   который регистрируется в Hermes: `https://mcp-<svc>.dashboard.example.com/mcp`.
   Native-образы могут использовать свой путь — сверяйтесь с README образа.
+  - **Linkding** (`ghcr.io/chickenzord/linkding-mcp`) отдаёт REST-эндпоинты
+    `POST /mcp/v1/initialize`, `/mcp/v1/tools/list`, `/mcp/v1/tools/call` (не `/mcp`).
+    Полный URL для Hermes: `https://mcp-linkding.dashboard.example.com/mcp/v1`.
 - Защита — Tailscale; собственной авторизации на MCP-эндпоинте нет.
 - **MCP → свой сервис** ходит по `internal` (внутреннее имя хоста), не через публичный URL. Наружу через Tailscale выходит только Hermes → MCP.
 
