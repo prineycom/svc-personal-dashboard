@@ -3,3 +3,6 @@
 *.env
 !*.env.example
 *.local
+
+# yoke transient runtime state (notify queue, machine-specific)
+.yoke/

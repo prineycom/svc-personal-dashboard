@@ -24,6 +24,14 @@ _Avoid_: монолит, единый compose
 Подпапка `services/<name>/` внутри Blueprint. Содержит свой docker-compose фрагмент, конфиги, `.env.example`. Изолирована от других сервисов.
 _Avoid_: модуль, сервис-репо
 
+**MCP Endpoint**:
+HTTP/SSE-эндпоинт MCP-сервера направления, развёрнутый контейнером в Blueprint за Traefik-поддоменом `mcp-<service>.dashboard.example.com`. Точка, к которой подключается Hermes. Защита — Tailscale, без собственной авторизации.
+_Avoid_: MCP-порт, коннектор
+
+**Bridge**:
+Контейнер с supergateway/mcpo, оборачивающий готовый stdio-only MCP-сервер в HTTP/SSE. Применяется только там, где у готового MCP нет нативного HTTP и Docker-образа (Vikunja, Wger).
+_Avoid_: прокси, шлюз
+
 ## Decisions
 
 - **Scope**: Гибрид — внешние сервисы только там где нет self-host аналога (Google Calendar). Self-host для всего остального. Hermes как единая точка входа через MCP. → [ADR 0001](docs/adr/0001-hybrid-architecture.md)
@@ -39,6 +47,13 @@ _Avoid_: модуль, сервис-репо
 - **Контакты**: Не priority. Резерв: OxiCloud или Radicale.
 - **Закладки/Медиа**: Linkding (self-hosted). Ультра-лёгкий (1 контейнер, ~60 МБ RAM, SQLite), 2 MCP-сервера, ARM64 alpine, авто-архивация через Internet Archive. AI tagging/summaries — через Hermes при сохранлении. → [ADR 0005](docs/adr/0005-linkding-for-bookmarks.md)
 - **MCP Dashboard**: Отключён. Создан преждевременно. Вернуть после редизайна.
+- **Топология интеграции (этап 2)**: Каждое self-hosted направление — remote MCP по HTTP/SSE, контейнер в Blueprint, за Traefik-поддоменом `mcp-<service>.dashboard.example.com`, защита Tailscale. Готовые stdio-MCP оборачиваются supergateway (Bridge), но только без нативного HTTP/образа: Firefly III и Linkding имеют официальный образ с HTTP → напрямую. Свои MCP — Python + FastMCP. Креды сервисов — в корневом `.env`. → [ADR 0007](docs/adr/0007-mcp-integration-topology.md)
+  - **Vikunja**: `democratize-technology/vikunja-mcp` (TS, полное покрытие) + supergateway.
+  - **Firefly III**: `fabianonetto/mcp-server-firefly-iii` (66 tools), нативный HTTP, официальный образ.
+  - **Wger**: `Juxsta/wger-mcp` (12 tools) + supergateway. Риск: проверить настраиваемость URL self-hosted инстанса.
+  - **Linkding**: `chickenzord/linkding-mcp` (Go), нативный HTTP, официальный образ.
+  - **BeaverHabits**: свой FastMCP поверх REST API (`/api/v1/...`).
+  - **OpenTickly**: свой FastMCP поверх Toggl API v9 — или форк Toggl-MCP с override base URL.
 - **Деплой**: Монорепо Blueprint `prineycom/svc-personal-dashboard` (private) на основе template-service. Плоский `docker-compose.yml` — все 12 контейнеров в одном файле. Каждый сервис в `services/<name>/` с `.env.example` для читаемости. Один репозиторий, один Dokploy deploy. → [ADR 0006](docs/adr/0006-monorepo-blueprint.md)
 - **Прежний `personal-dashboard`**: Удалён/переделан. Не референсировать, не переносить код.
 - **Shared PostgreSQL**: Один инстанс PostgreSQL 17 (описан в корневом compose) с отдельными базами для Vikunja, Firefly III, Wger, OpenTickly. BeaverHabits и Linkding используют встроенный SQLite.
