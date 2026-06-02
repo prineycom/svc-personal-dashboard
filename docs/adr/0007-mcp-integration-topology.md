@@ -25,7 +25,7 @@
 ## Decision
 
 1. **Транспорт**: remote HTTP/SSE. MCP-серверы — контейнеры в корневом `docker-compose.yml`, как и сервисы.
-2. **Готовые stdio-MCP оборачиваем supergateway** — но только те, у кого нет нативного HTTP/Docker. Firefly III и Linkding имеют официальный образ с нативным HTTP — их запускаем напрямую, мост не нужен.
+2. **Готовые stdio-MCP оборачиваем supergateway** — но только те, у кого нет нативного HTTP/Docker. Firefly III и Linkding имеют нативный HTTP — мост не нужен. Firefly III запускаем из официального образа; у Linkding официальный образ битый под arm64 (хардкод `GOARCH=amd64`), поэтому собираем из исходников в `services/linkding/mcp/`.
 3. **Доступ через Traefik-поддомены** (`mcp-<service>.dashboard.example.com`), управление в Dokploy UI, как у сервисов. Защита — Tailscale (отдельная авторизация на MCP-эндпоинте не вводится, согласно [ADR 0001] решению «защита сетевая»).
 4. **Собственные MCP — Python + FastMCP** (нативный HTTP), для BeaverHabits и OpenTickly (позже focus-goals).
 5. **Креды сервисов** (API-токены) живут в корневом `.env`, пробрасываются в MCP-контейнеры через `environment`-блок — как уже сделано для сервисов.
@@ -37,9 +37,14 @@
 | Vikunja | `democratize-technology/vikunja-mcp` (TS, полное покрытие) | stdio | **supergateway-обёртка**, свой образ |
 | Firefly III | `fabianonetto/mcp-server-firefly-iii` (66 tools) | **нативный HTTP/SSE** (`PORT`) | официальный образ `ghcr.io/...`, **без моста** |
 | Wger | `Juxsta/wger-mcp` (12 tools, TS) | stdio | **supergateway-обёртка**; риск: проверить настраиваемость URL self-hosted инстанса |
-| Linkding | `chickenzord/linkding-mcp` (Go) | **нативный HTTP** (`BIND_ADDR`) | официальный образ `ghcr.io/...`, **без моста** |
+| Linkding | `chickenzord/linkding-mcp` (Go) | **нативный HTTP** (`BIND_ADDR`) | сборка из исходников (`services/linkding/mcp/`)¹, **без моста** |
 | BeaverHabits | свой (REST API `/api/v1/...` есть) | нативный HTTP (FastMCP) | свой образ Python |
 | OpenTickly | свой FastMCP поверх Toggl API v9 — **или** форк готового Toggl-MCP с override базового URL | нативный HTTP | свой образ Python |
+
+> ¹ Официальный образ `ghcr.io/chickenzord/linkding-mcp` хардкодит `GOARCH=amd64`
+> в своём Dockerfile, поэтому «arm64»-вариант содержит x86-64 бинарь и падает на
+> Pi с `exec format error` (проверено при реализации #15). Собираем из исходников
+> под нативную архитектуру — `services/linkding/mcp/Dockerfile`.
 
 ## Consequences
 

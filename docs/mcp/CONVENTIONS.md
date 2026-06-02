@@ -21,15 +21,22 @@
 | Vikunja | `@democratize-technology/vikunja-mcp` | bridge |
 | Firefly III | `ghcr.io/fabianonetto/mcp-server-firefly-iii` | native (`PORT`) |
 | Wger | `Juxsta/wger-mcp` | bridge |
-| Linkding | `ghcr.io/chickenzord/linkding-mcp` | native (`BIND_ADDR`) |
+| Linkding | `chickenzord/linkding-mcp` | native (`BIND_ADDR`), build from source¹ |
 | BeaverHabits | свой FastMCP | native |
 | OpenTickly | свой FastMCP / форк Toggl-MCP | native |
+
+> ¹ Официальный образ `ghcr.io/chickenzord/linkding-mcp` хардкодит `GOARCH=amd64`,
+> поэтому его «arm64»-вариант содержит x86-64 бинарь и падает на Pi с
+> `exec format error`. Собираем из исходников под нативную архитектуру —
+> [`services/linkding/mcp/Dockerfile`](../../services/linkding/mcp/Dockerfile).
 
 ## 2. Размещение
 
 - **Bridge-образ** — общий, в `services/_mcp/` (Dockerfile + README). Параметризуется build-arg `MCP_PKG`.
 - **Свой FastMCP** — в `services/<svc>/mcp/` (Dockerfile + исходники).
-- **Native-образ** — своей папки не требует, только блок в compose.
+- **Native-образ** — своей папки не требует, только блок в compose. Исключение —
+  Linkding: официальный образ битый под arm64, поэтому собираем из исходников в
+  `services/linkding/mcp/` (Dockerfile клонирует upstream на пиннутом теге).
 
 ## 3. Сеть и роутинг
 
@@ -41,9 +48,9 @@
   (меняется флагом `--streamableHttpPath`), health — на `/healthz`. Полный URL,
   который регистрируется в Hermes: `https://mcp-<svc>.dashboard.example.com/mcp`.
   Native-образы могут использовать свой путь — сверяйтесь с README образа.
-  - **Linkding** (`ghcr.io/chickenzord/linkding-mcp`) отдаёт REST-эндпоинты
-    `POST /mcp/v1/initialize`, `/mcp/v1/tools/list`, `/mcp/v1/tools/call` (не `/mcp`).
-    Полный URL для Hermes: `https://mcp-linkding.dashboard.example.com/mcp/v1`.
+  - **Linkding** (`services/linkding/mcp/`, собран из исходников) — стандартный
+    MCP streamable-HTTP на go-sdk; хендлер отвечает на любом пути (`/`, `/mcp`).
+    URL для Hermes: `https://mcp-linkding.dashboard.example.com/mcp`.
 - Защита — Tailscale; собственной авторизации на MCP-эндпоинте нет.
 - **MCP → свой сервис** ходит по `internal` (внутреннее имя хоста), не через публичный URL. Наружу через Tailscale выходит только Hermes → MCP.
 
