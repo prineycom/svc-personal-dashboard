@@ -450,6 +450,42 @@ services:
       - internal
       - dokploy-network
 
+  # ── Linkding MCP (Bookmarks → Hermes) ──────────────────────────────────
+  # Native Go image, started in HTTP mode (`http` subcommand). Exposes the MCP
+  # endpoints at /mcp/v1/* — see docs/mcp/CONVENTIONS.md §3. Reaches Linkding
+  # over the internal network at http://linkding:9090.
+  mcp-linkding:
+    image: ghcr.io/chickenzord/linkding-mcp:v0.1.6
+    command: ["http"]
+    restart: unless-stopped
+
+    depends_on:
+      linkding:
+        condition: service_started
+
+    environment:
+      LINKDING_URL: http://linkding:9090
+      LINKDING_API_TOKEN: ${LINKDING_MCP_TOKEN:-}   # .env namespace -> image env
+      BIND_ADDR: ":8000"
+
+    # No healthcheck: the minimal Go image ships no shell/wget and exposes no
+    # health endpoint (same as vikunja above).
+
+    expose:
+      - "8000"
+    # For local testing — set LINKDING_MCP_PORT=8100 in .env
+    ports:
+      - ${LINKDING_MCP_PORT:-}:8000
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
   # ── BeaverHabits (Habits) ──────────────────────────────────────────────
   beaverhabits:
     image: daya0576/beaverhabits:0.9.1
