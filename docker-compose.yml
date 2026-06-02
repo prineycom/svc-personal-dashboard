@@ -143,7 +143,10 @@ services:
         condition: service_healthy
 
     environment:
-      VIKUNJA_URL: http://vikunja:3456
+      # The MCP uses this URL verbatim — it must include the /api/v1 suffix,
+      # otherwise calls hit the Vikunja frontend and fail ("Unexpected token '<'").
+      VIKUNJA_URL: http://vikunja:3456/api/v1
+      # API token from the Vikunja UI (Settings → API tokens), format tk_…
       VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}
 
     expose:
