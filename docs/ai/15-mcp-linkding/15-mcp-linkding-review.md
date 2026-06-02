@@ -61,17 +61,35 @@
 
 ## Issues Found
 
-**Code is clean.**
+Статический review был «чист», но **runtime-верификация** (запуск контейнера на ARM64) вскрыла два дефекта:
+
+| Severity | Score | Category      | Где                  | Описание                                                                 |
+| -------- | ----- | ------------- | -------------------- | ------------------------------------------------------------------------ |
+| Critical | 90    | compatibility | docker-compose.yml   | Официальный образ хардкодит `GOARCH=amd64` → arm64-вариант = x86-64 бинарь, `exec format error` на Pi |
+| Important| 70    | correctness   | docker-compose.yml   | Тег `:v0.1.6` не существует на ghcr.io (образы публикуются без `v`: `0.1.6`) |
+| Minor    | 40    | docs          | CONVENTIONS.md       | Заявленный путь `/mcp/v1/*` неверен — сервер отдаёт стандартный MCP streamable-HTTP на `/mcp` |
 
 ## Fixed Issues
 
-**All issues fixed.**
+| Issue                         | Commit    | Description                                                        |
+| ----------------------------- | --------- | ----------------------------------------------------------------- |
+| arm64-образ не исполняется    | `0d256e0` | Сборка из исходников под нативную арку (`services/linkding/mcp/Dockerfile`) |
+| Неверный тег образа           | `0d256e0` | Переход на `build:`; upstream пиннится тегом `v0.1.6` в build-arg  |
+| Неверный путь эндпоинта в доке | `0d256e0` | Исправлено на стандартный streamable-HTTP `/mcp` в CONVENTIONS/ADR |
 
 ## Skipped Issues
 
 **All found issues were fixed.**
 
+## Runtime verification (на ARM64 Pi)
+
+- `docker build services/linkding/mcp` → образ собран; `file` бинаря → `ELF ... ARM aarch64` ✅
+- `docker compose build mcp-linkding` → образ собран через compose ✅
+- Запуск + MCP-хендшейк `POST /mcp {initialize}` → `200`, `Mcp-Session-Id`, `serverInfo: linkding-mcp v0.1.6` ✅
+- `tools/list` в сессии → `search_bookmarks`, `create_bookmark`, `get_tags` ✅
+
 ## Recommendations
 
-- На verify подтвердить, что Hermes понимает REST-протокол образа `/mcp/v1/*`; при несовместимости — рассмотреть обёртку (Bridge) и обновить ADR 0007 / CONVENTIONS.md.
+- На реальном деплое подтвердить connect Hermes → `https://mcp-linkding.dashboard.example.com/mcp` и end-to-end сохранение/поиск закладки (с валидным `LINKDING_MCP_TOKEN`).
 - Сгенерировать `LINKDING_MCP_TOKEN` в UI Linkding и прописать в Dokploy → Environment перед деплоем.
+- Рассмотреть upstream-иссью chickenzord/linkding-mcp о хардкоде `GOARCH=amd64`; при фиксе можно вернуться на официальный образ.
