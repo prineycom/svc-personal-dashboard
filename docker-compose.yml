@@ -102,7 +102,7 @@ services:
       VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DATABASE_PASSWORD:-${POSTGRES_PASSWORD}}
       VIKUNJA_DATABASE_DATABASE: ${VIKUNJA_DATABASE_DATABASE:-vikunja}
       VIKUNJA_SERVICE_SECRET: ${VIKUNJA_SERVICE_SECRET:-changeme-vikunja-secret}
-      VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_SERVICE_PUBLICURL:-http://localhost:3456}
+      VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_SERVICE_PUBLICURL:-http://tasks.priney.com}
 
     volumes:
       - vikunja_files:/app/vikunja/files
@@ -158,6 +158,7 @@ services:
       DEFAULT_LOCALE: ${FIREFLY_DEFAULT_LOCALE:-ru_RU}
       TZ: ${FIREFLY_TZ:-Europe/Moscow}
       TRUSTED_PROXIES: "**"
+      APP_URL: ${FIREFLY_APP_URL:-http://finance.priney.com}
       LOG_CHANNEL: ${FIREFLY_LOG_CHANNEL:-stack}
       APP_LOG_LEVEL: ${FIREFLY_APP_LOG_LEVEL:-notice}
       DB_CONNECTION: ${FIREFLY_DB_CONNECTION:-pgsql}
@@ -182,6 +183,13 @@ services:
     networks:
       - internal
       - dokploy-network
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.firefly-web.rule=Host(`finance.priney.com`)
+      - traefik.http.routers.firefly-web.entrypoints=web
+      - traefik.http.services.firefly-web.loadbalancer.server.port=8080
+      - traefik.docker.network=dokploy-network
 
   firefly-cron:
     image: alpine:3.21
@@ -226,6 +234,7 @@ services:
       TIME_ZONE: ${WGER_TIME_ZONE:-Europe/Moscow}
       TZ: ${WGER_TZ:-Europe/Moscow}
       WGER_INSTANCE: ${WGER_INSTANCE:-https://wger.de}
+      CSRF_TRUSTED_ORIGINS: ${WGER_CSRF_TRUSTED_ORIGINS:-http://fitness.priney.com}
       ALLOW_REGISTRATION: ${WGER_ALLOW_REGISTRATION:-True}
       ALLOW_GUEST_USERS: ${WGER_ALLOW_GUEST_USERS:-False}
       ALLOW_UPLOAD_VIDEOS: ${WGER_ALLOW_UPLOAD_VIDEOS:-True}
@@ -309,6 +318,13 @@ services:
     networks:
       - internal
       - dokploy-network
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.wger-web.rule=Host(`fitness.priney.com`)
+      - traefik.http.routers.wger-web.entrypoints=web
+      - traefik.http.services.wger-web.loadbalancer.server.port=80
+      - traefik.docker.network=dokploy-network
 
   wger-celery-worker:
     image: wger/server:2.5
@@ -430,6 +446,9 @@ services:
     image: sissbruecker/linkding:1.45.0-alpine
     restart: unless-stopped
 
+    environment:
+      LD_CSRF_TRUSTED_ORIGINS: ${LD_CSRF_TRUSTED_ORIGINS:-http://bookmarks.priney.com}
+
     volumes:
       - linkding_data:/etc/linkding/data
 
@@ -445,6 +464,13 @@ services:
     networks:
       - internal
       - dokploy-network
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.linkding-web.rule=Host(`bookmarks.priney.com`)
+      - traefik.http.routers.linkding-web.entrypoints=web
+      - traefik.http.services.linkding-web.loadbalancer.server.port=9090
+      - traefik.docker.network=dokploy-network
 
   # ── BeaverHabits (Habits) ──────────────────────────────────────────────
   beaverhabits:
@@ -471,6 +497,13 @@ services:
     networks:
       - internal
       - dokploy-network
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.beaverhabits-web.rule=Host(`habits.priney.com`)
+      - traefik.http.routers.beaverhabits-web.entrypoints=web
+      - traefik.http.services.beaverhabits-web.loadbalancer.server.port=8080
+      - traefik.docker.network=dokploy-network
 
   # ── OpenTickly (Time Tracker) ──────────────────────────────────────────
   opentickly:
@@ -508,6 +541,13 @@ services:
     networks:
       - internal
       - dokploy-network
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.opentickly-web.rule=Host(`time.priney.com`)
+      - traefik.http.routers.opentickly-web.entrypoints=web
+      - traefik.http.services.opentickly-web.loadbalancer.server.port=8080
+      - traefik.docker.network=dokploy-network
 
 volumes:
   postgres_data:
