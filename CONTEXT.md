@@ -72,8 +72,9 @@ _Avoid_: прокси, шлюз
 | Linkding | `sissbruecker/linkding:1.45.0-alpine` | 1 | SQLite | ~50 MB | ✅ |
 | BeaverHabits | `daya0576/beaverhabits:0.9.1` | 1 | SQLite (DATABASE mode) | ~10-20 MB | ✅ |
 | OpenTickly | `correctroad/opentoggl:0.2.16` | 1 | Shared PG + Redis | ~30-50 MB | ✅ |
+| Vaultwarden | `vaultwarden/server:1.36.0-alpine` | 1 | SQLite | ~50 MB | ✅ |
 
-**Итого: 12 контейнеров, ~900 MB idle / ~1.3 GB peak RAM.**
+**Итого: 13 контейнеров, ~950 MB idle / ~1.3 GB peak RAM.**
 
 ## Architecture Split
 
@@ -85,6 +86,7 @@ _Avoid_: прокси, шлюз
 5. `services/linkding/` — закладки (1 контейнер)
 6. `services/beaverhabits/` — привычки (1 контейнер)
 7. `services/opentickly/` — тайм-трекинг (1 контейнер)
+8. `services/vaultwarden/` — пароли (1 контейнер)
 
 **Через Hermes-скиллы (вне compose):**
 - Почта (Gmail) — Google Workspace скилл
@@ -101,7 +103,8 @@ _Avoid_: прокси, шлюз
 | Wger | `fitness.dashboard.example.com` |
 | Linkding | `bookmarks.dashboard.example.com` |
 | BeaverHabits | `habits.dashboard.example.com` |
-| OpenTickly | `time.dashboard.example.com`
+| OpenTickly | `time.dashboard.example.com` |
+| Vaultwarden | `passwords.dashboard.example.com` |
 
 ## Example Dialogue
 
