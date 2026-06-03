@@ -575,7 +575,7 @@ services:
       DOMAIN: ${VAULTWARDEN_DOMAIN:-http://passwords.example.com}
       # Registration stays open; real protection is Tailscale (no SSO needed).
       SIGNUPS_ALLOWED: ${VAULTWARDEN_SIGNUPS_ALLOWED:-true}
-      # Argon2 PHC hash — generate with: docker run --rm vaultwarden/server vaultwarden hash
+      # Argon2 PHC hash — generate with: docker run --rm -it vaultwarden/server /vaultwarden hash
       # Empty disables the /admin panel entirely.
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:-}
 
