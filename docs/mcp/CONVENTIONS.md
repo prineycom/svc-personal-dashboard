@@ -48,6 +48,12 @@
   Native-образы могут использовать свой путь — сверяйтесь с README образа.
 - Защита — Tailscale; собственной авторизации на MCP-эндпоинте нет.
 - **MCP → свой сервис** ходит по `internal` (внутреннее имя хоста), не через публичный URL. Наружу через Tailscale выходит только Hermes → MCP.
+- **Hermes на том же хосте (текущий случай).** Тогда поддомен не нужен — проще
+  и надёжнее опубликовать фиксированный host-порт и ходить на
+  `http://127.0.0.1:<port>/mcp`. Зафиксируй `<SVC>_MCP_PORT` свободным портом
+  (пустое значение = случайный порт, слетает при каждом редеплое). Vikunja MCP
+  закреплён на `8765` (`http://127.0.0.1:8765/mcp`). Поддомен `mcp-<svc>` нужен,
+  только если Hermes когда-нибудь переедет на другую машину.
 
 Внутренние upstream-хосты:
 
@@ -127,8 +133,8 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
       vikunja:
         condition: service_healthy
     environment:
-      VIKUNJA_URL: http://vikunja:3456
-      VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}
+      VIKUNJA_URL: http://vikunja:3456/api/v1   # /api/v1 обязателен
+      VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}  # токен формата tk_…
     expose:
       - "8000"
     ports:
@@ -149,7 +155,9 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
 ```
 
 > Точные имена env-переменных зависят от пакета — сверяйтесь с его README и
-> мапьте на ключи `<SVC>_MCP_*` в корневом `.env`.
+> мапьте на ключи `<SVC>_MCP_*` в корневом `.env`. Для `vikunja-mcp@0.2.0`:
+> `VIKUNJA_URL` (берётся как есть — суффикс `/api/v1` обязателен, иначе запросы
+> уходят на фронтенд) и `VIKUNJA_API_TOKEN` (токен формата `tk_…` из UI Vikunja).
 
 **Firefly III** использует тот же bridge — официальный образ только amd64, а
 npm-пакет мультиарх. Пошаговая настройка — [`firefly-iii.md`](firefly-iii.md).

@@ -130,6 +130,52 @@ services:
       - internal
       - dokploy-network
 
+  # ── MCP: Vikunja (supergateway bridge) ─────────────────────────────────
+  mcp-vikunja:
+    build:
+      context: ./services/_mcp
+      args:
+        MCP_PKG: "@democratize-technology/vikunja-mcp@0.2.0"
+    restart: unless-stopped
+
+    depends_on:
+      vikunja:
+        condition: service_healthy
+
+    environment:
+      # The MCP uses this URL verbatim — it must include the /api/v1 suffix,
+      # otherwise calls hit the Vikunja frontend and fail ("Unexpected token '<'").
+      VIKUNJA_URL: http://vikunja:3456/api/v1
+      # API token from the Vikunja UI (Settings → API tokens), format tk_…
+      VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}
+
+    expose:
+      - "8000"
+
+    # Hermes runs on the same host and connects via this published port:
+    #   http://127.0.0.1:${VIKUNJA_MCP_PORT}/mcp
+    # Pinned to 8765 by default so the port survives redeploys — an empty value
+    # publishes 8000 to a RANDOM host port. Override via VIKUNJA_MCP_PORT.
+    # Alternative: set it empty and route via an mcp-vikunja subdomain in Dokploy.
+    ports:
+      - ${VIKUNJA_MCP_PORT:-8765}:8000
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
   # ── Firefly III (Finances) ─────────────────────────────────────────────
   firefly-app:
     image: fireflyiii/core:version-6.6.3

@@ -244,6 +244,12 @@ For each web service, open it in Dokploy → **Domains** → **Add Domain**:
 | `linkding`     | `bookmarks.example.com` | `9090` | `web`, HTTPS off |
 | `beaverhabits` | `habits.example.com`    | `8080` | `web`, HTTPS off |
 | `opentickly`   | `time.example.com`      | `8080` | `web`, HTTPS off |
+| `mcp-vikunja`  | `mcp-vikunja.dashboard.example.com` | `8000` | `web`, HTTPS off |
+
+> **MCP endpoints follow the `mcp-<svc>.dashboard.example.com` pattern** and all
+> serve streamable-HTTP on container port `8000`. Register them in the UI the
+> same way — no `traefik.*` labels in `docker-compose.yml`. Hermes then connects
+> to `https://mcp-vikunja.dashboard.example.com/mcp`.
 
 > **Use the container-internal port, not the published host port.** Traefik
 > reaches containers *inside* `dokploy-network`, so OpenTickly is `8080` (its
@@ -275,6 +281,23 @@ target port is wrong or the backend is still starting (Step 6 + wait).
 Then open each subdomain in a browser on a tailnet device. If a name does not
 resolve, flush the client DNS cache (macOS:
 `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`).
+
+**Verify the Vikunja MCP bridge.** Generate a Vikunja API token in the Vikunja UI
+(**Settings → API tokens**) and set it in `.env` as `VIKUNJA_MCP_TOKEN` — this is
+the token the MCP uses to call Vikunja, distinct from `VIKUNJA_SERVICE_SECRET`.
+After deploy, probe the bridge on the host:
+
+```bash
+docker compose exec mcp-vikunja wget -qO- http://localhost:8000/healthz   # → ok
+```
+
+Expect a healthy response on `/healthz` and a reachable MCP endpoint on `/mcp`.
+Then, from Hermes (pointed at `https://mcp-vikunja.dashboard.example.com/mcp`),
+create a Vikunja task and read it back to confirm end-to-end connectivity.
+
+Full env reference and step-by-step (token creation, the mandatory `/api/v1`
+suffix, tool-list check) — [`services/_mcp/README.md`](services/_mcp/README.md)
+→ **Vikunja MCP — setup**.
 
 ### Step 9 — Create the first accounts (and change Wger's default)
 
