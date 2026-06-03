@@ -606,6 +606,42 @@ services:
       - internal
       - dokploy-network
 
+  # ── Vaultwarden (Passwords) ────────────────────────────────────────────
+  vaultwarden:
+    image: vaultwarden/server:1.36.0-alpine  # Rust/alpine, single container, embedded SQLite
+    restart: unless-stopped
+
+    environment:
+      # MUST match the public domain; use https in production or WebAuthn/passkeys
+      # and attachment/admin links break.
+      DOMAIN: ${VAULTWARDEN_DOMAIN:-http://passwords.example.com}
+      # Registration stays open; real protection is Tailscale (no SSO needed).
+      SIGNUPS_ALLOWED: ${VAULTWARDEN_SIGNUPS_ALLOWED:-true}
+      # Argon2 PHC hash — generate with: docker run --rm -it vaultwarden/server /vaultwarden hash
+      # Empty disables the /admin panel entirely.
+      ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:-}
+
+    # SQLite + attachments live here. Named volume so data survives redeploys
+    # independently of the Dokploy git-clone dir (db is created automatically).
+    volumes:
+      - vaultwarden_data:/data
+
+    # For local testing — set VAULTWARDEN_PORT=9100 in .env.
+    # Vaultwarden's Rocket server listens on container port 80 by default.
+    ports:
+      - ${VAULTWARDEN_PORT:-}:80
+
+    # 192M (not 128M): server-side Argon2id verification of ADMIN_TOKEN spikes
+    # ~64 MiB transiently on each /admin login — headroom for the no-swap Pi 5.
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+    networks:
+      - internal
+      - dokploy-network
+
 volumes:
   postgres_data:
   redis_data:
@@ -616,6 +652,7 @@ volumes:
   wger_celery_beat:
   linkding_data:
   beaverhabits_data:
+  vaultwarden_data:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
