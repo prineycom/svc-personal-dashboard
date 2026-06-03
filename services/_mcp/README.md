@@ -3,9 +3,10 @@
 Shared Docker image that wraps a **stdio-only** MCP server in a
 **streamable-HTTP** endpoint via [supergateway](https://github.com/supercorp-ai/supergateway).
 
-Only stdio MCP servers without an official image use this bridge. MCP servers
-with native HTTP + an official image run that image directly. See the routing
-table in [`docs/mcp/CONVENTIONS.md`](../../docs/mcp/CONVENTIONS.md) and
+Use this bridge when an MCP ships stdio-only, or when its official image has no
+build for the target arch. MCP servers with a native-HTTP image for the target
+arch run that image directly. See the routing table in
+[`docs/mcp/CONVENTIONS.md`](../../docs/mcp/CONVENTIONS.md) and
 [`docs/adr/0007-mcp-integration-topology.md`](../../docs/adr/0007-mcp-integration-topology.md).
 
 ## Who uses it
@@ -14,7 +15,7 @@ table in [`docs/mcp/CONVENTIONS.md`](../../docs/mcp/CONVENTIONS.md) and
 |-----|-----------------|---------|
 | Vikunja ([#12](https://github.com/prineycom/svc-personal-dashboard/issues/12)) | `@democratize-technology/vikunja-mcp` | ✅ yes |
 | Wger ([#14](https://github.com/prineycom/svc-personal-dashboard/issues/14)) | `Juxsta/wger-mcp` | ✅ yes |
-| Firefly III ([#13](https://github.com/prineycom/svc-personal-dashboard/issues/13)) | — | ❌ native HTTP image |
+| Firefly III ([#13](https://github.com/prineycom/svc-personal-dashboard/issues/13)) | `mcp-server-firefly-iii` ([setup](../../docs/mcp/firefly-iii.md)) | ✅ yes (official image is amd64-only) |
 | Linkding ([#15](https://github.com/prineycom/svc-personal-dashboard/issues/15)) | — | ❌ native HTTP image |
 
 ## How to add a bridged MCP

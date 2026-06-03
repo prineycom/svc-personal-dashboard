@@ -13,17 +13,22 @@
 
 | Случай | Когда | Как |
 |--------|-------|-----|
-| **Native** | у MCP есть официальный образ с нативным HTTP | запускаем образ напрямую (`PORT` / `BIND_ADDR`) |
-| **Bridge** | MCP только stdio, образа нет | оборачиваем через [`services/_mcp/`](../../services/_mcp/) (supergateway) |
+| **Native** | у MCP есть официальный образ с нативным HTTP **под нужную арку** | запускаем образ напрямую (`PORT` / `BIND_ADDR`) |
+| **Bridge** | MCP только stdio, или образа нет под целевую арку | оборачиваем через [`services/_mcp/`](../../services/_mcp/) (supergateway) |
 
 | Сервис | MCP | Транспорт |
 |--------|-----|-----------|
 | Vikunja | `@democratize-technology/vikunja-mcp` | bridge |
-| Firefly III | `ghcr.io/fabianonetto/mcp-server-firefly-iii` | native (`PORT`) |
+| Firefly III | `mcp-server-firefly-iii` (npm) | bridge¹ |
 | Wger | `Juxsta/wger-mcp` | bridge |
 | Linkding | `ghcr.io/chickenzord/linkding-mcp` | native (`BIND_ADDR`) |
 | BeaverHabits | свой FastMCP | native |
 | OpenTickly | свой FastMCP / форк Toggl-MCP | native |
+
+> ¹ У Firefly III официальный образ `ghcr.io/fabianonetto/mcp-server-firefly-iii`
+> публикуется только под `linux/amd64`, поэтому на Pi (arm64) не запускается
+> (`exec format error`). npm-пакет `mcp-server-firefly-iii` мультиарх → оборачиваем
+> его bridge'ом. Если деплой только на x86-64 — допустим и native-образ.
 
 ## 2. Размещение
 
@@ -81,25 +86,27 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
 
 ## 6. Compose-сниппеты
 
-### Native (Firefly III)
+### Native (официальный образ)
+
+Для образа с нативным HTTP под целевую арку (Linkding, свои FastMCP):
 
 ```yaml
-  mcp-firefly:
-    image: ghcr.io/fabianonetto/mcp-server-firefly-iii:<pin>
+  mcp-<svc>:
+    image: <official-image>:<pin>          # пин по тегу или @sha256
     restart: unless-stopped
     depends_on:
-      firefly-app:
+      <svc>:
         condition: service_started
     environment:
-      FIREFLY_URL: http://firefly-app:8080
-      FIREFLY_TOKEN: ${FIREFLY_MCP_TOKEN:-}
-      PORT: "8000"
+      <SVC>_URL: http://<svc>:<port>        # внутренний хост, не публичный URL
+      <SVC>_TOKEN: ${<SVC>_MCP_TOKEN:-}
+      PORT: "8000"                          # или BIND_ADDR — см. README образа
     expose:
       - "8000"
     ports:
-      - ${FIREFLY_MCP_PORT:-}:8000
+      - ${<SVC>_MCP_PORT:-}:8000
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/<health-path>"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -151,3 +158,22 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
 > мапьте на ключи `<SVC>_MCP_*` в корневом `.env`. Для `vikunja-mcp@0.2.0`:
 > `VIKUNJA_URL` (берётся как есть — суффикс `/api/v1` обязателен, иначе запросы
 > уходят на фронтенд) и `VIKUNJA_API_TOKEN` (токен формата `tk_…` из UI Vikunja).
+
+**Firefly III** использует тот же bridge — официальный образ только amd64, а
+npm-пакет мультиарх. Пошаговая настройка — [`firefly-iii.md`](firefly-iii.md).
+Отличие от Vikunja — `MCP_PKG` и env-переменные пакета:
+
+```yaml
+  mcp-firefly:
+    build:
+      context: ./services/_mcp
+      args:
+        MCP_PKG: "mcp-server-firefly-iii@3.0.0"
+    depends_on:
+      firefly-app:
+        condition: service_started
+    environment:
+      FIREFLY_URL: http://firefly-app:8080
+      FIREFLY_TOKEN: ${FIREFLY_MCP_TOKEN:-}
+    # expose / ports / healthcheck (/healthz) / deploy / networks — как у mcp-vikunja
+```

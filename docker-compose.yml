@@ -247,6 +247,47 @@ services:
     networks:
       - internal
 
+  # ── Firefly III MCP (bridge: stdio npm pkg → HTTP) ─────────────────────
+  # Upstream ghcr image is amd64-only; the npm package is multi-arch, so on
+  # the Pi (arm64) we wrap it with the shared supergateway bridge instead.
+  mcp-firefly:
+    build:
+      context: ./services/_mcp
+      args:
+        MCP_PKG: "mcp-server-firefly-iii@3.0.0"
+    restart: unless-stopped
+
+    depends_on:
+      firefly-app:
+        condition: service_started
+
+    environment:
+      FIREFLY_URL: http://firefly-app:8080
+      FIREFLY_TOKEN: ${FIREFLY_MCP_TOKEN:-}
+
+    expose:
+      - "8000"
+
+    # For local testing — set FIREFLY_MCP_PORT in .env
+    ports:
+      - ${FIREFLY_MCP_PORT:-}:8000
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
   # ── Wger (Health/Fitness) ──────────────────────────────────────────────
   wger-web:
     image: wger/server:2.5
