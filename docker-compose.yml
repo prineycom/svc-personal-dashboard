@@ -491,7 +491,7 @@ services:
       beaverhabits:
         condition: service_started
     environment:
-      BEAVERHABITS_MCP_URL: http://beaverhabits:8080
+      BEAVERHABITS_MCP_URL: ${BEAVERHABITS_MCP_URL:-http://beaverhabits:8080}
       BEAVERHABITS_MCP_EMAIL: ${BEAVERHABITS_MCP_EMAIL:-}
       BEAVERHABITS_MCP_PASSWORD: ${BEAVERHABITS_MCP_PASSWORD:-}
     expose:
