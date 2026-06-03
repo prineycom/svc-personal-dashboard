@@ -51,7 +51,7 @@ _Avoid_: прокси, шлюз
   - **Vikunja**: `democratize-technology/vikunja-mcp` (TS, полное покрытие) + supergateway.
   - **Firefly III**: `fabianonetto/mcp-server-firefly-iii` (66 tools), нативный HTTP, официальный образ.
   - **Wger**: `Juxsta/wger-mcp` (12 tools) + supergateway. Риск: проверить настраиваемость URL self-hosted инстанса.
-  - **Linkding**: `chickenzord/linkding-mcp` (Go), нативный HTTP, официальный образ.
+  - **Linkding**: `chickenzord/linkding-mcp` (Go), нативный HTTP. Официальный образ хардкодит `GOARCH=amd64` (битый arm64) → собираем из исходников в `services/linkding/mcp/`.
   - **BeaverHabits**: свой FastMCP поверх REST API (`/api/v1/...`).
   - **OpenTickly**: свой FastMCP поверх Toggl API v9 — или форк Toggl-MCP с override base URL.
 - **Деплой**: Монорепо Blueprint `prineycom/svc-personal-dashboard` (private) на основе template-service. Плоский `docker-compose.yml` — все 12 контейнеров в одном файле. Каждый сервис в `services/<name>/` с `.env.example` для читаемости. Один репозиторий, один Dokploy deploy. → [ADR 0006](docs/adr/0006-monorepo-blueprint.md)
