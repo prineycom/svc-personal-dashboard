@@ -40,7 +40,11 @@ RUN npm install -g "supergateway@${SUPERGATEWAY_VERSION}" "${MCP_PKG}"
 
 EXPOSE 8000
 
-# stdio -> streamable-HTTP. `npx -y` resolves the already-installed global pkg.
+# stdio -> streamable-HTTP. Use `npx --no-install` so npx resolves the package
+# already installed globally above and NEVER contacts the npm registry at
+# runtime — `npx -y` would hit registry.npmjs.org on every cold start and fail
+# on the internal (egress-less) network with EAI_AGAIN. `${MCP_PKG%@*}` strips
+# the trailing `@version` so npx matches the installed name.
 # JSON exec form (sh -c) so the linter is happy and signals reach supergateway;
 # sh is still needed to expand ${MCP_PKG} / ${MCP_PORT} at runtime.
-CMD ["sh", "-c", "exec supergateway --stdio \"npx -y ${MCP_PKG}\" --outputTransport streamableHttp --port \"${MCP_PORT}\" --healthEndpoint /healthz"]
+CMD ["sh", "-c", "exec supergateway --stdio \"npx --no-install ${MCP_PKG%@*}\" --outputTransport streamableHttp --port \"${MCP_PORT}\" --healthEndpoint /healthz"]

@@ -120,8 +120,8 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
       vikunja:
         condition: service_healthy
     environment:
-      VIKUNJA_URL: http://vikunja:3456
-      VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}
+      VIKUNJA_URL: http://vikunja:3456/api/v1   # /api/v1 обязателен
+      VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}  # токен формата tk_…
     expose:
       - "8000"
     ports:
@@ -142,4 +142,6 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
 ```
 
 > Точные имена env-переменных зависят от пакета — сверяйтесь с его README и
-> мапьте на ключи `<SVC>_MCP_*` в корневом `.env`.
+> мапьте на ключи `<SVC>_MCP_*` в корневом `.env`. Для `vikunja-mcp@0.2.0`:
+> `VIKUNJA_URL` (берётся как есть — суффикс `/api/v1` обязателен, иначе запросы
+> уходят на фронтенд) и `VIKUNJA_API_TOKEN` (токен формата `tk_…` из UI Vikunja).
