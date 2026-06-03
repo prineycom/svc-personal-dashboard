@@ -152,10 +152,13 @@ services:
     expose:
       - "8000"
 
-    # For local testing — set VIKUNJA_MCP_PORT in .env.
-    # On Dokploy: leave empty and register the mcp-vikunja subdomain in the UI.
+    # Hermes runs on the same host and connects via this published port:
+    #   http://127.0.0.1:${VIKUNJA_MCP_PORT}/mcp
+    # Pinned to 8765 by default so the port survives redeploys — an empty value
+    # publishes 8000 to a RANDOM host port. Override via VIKUNJA_MCP_PORT.
+    # Alternative: set it empty and route via an mcp-vikunja subdomain in Dokploy.
     ports:
-      - ${VIKUNJA_MCP_PORT:-}:8000
+      - ${VIKUNJA_MCP_PORT:-8765}:8000
 
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
