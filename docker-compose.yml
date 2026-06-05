@@ -508,6 +508,49 @@ services:
     networks:
       - internal
 
+  # ── Wger MCP (Bridge → supergateway) ────────────────────────────────────
+  # stdio-only @juxsta/wger-mcp wrapped in streamable-HTTP by the shared
+  # services/_mcp bridge. Reaches wger over the internal network; Hermes
+  # reaches this at mcp-wger.dashboard.example.com/mcp (registered in Dokploy
+  # UI — no Traefik labels here). See docs/mcp/CONVENTIONS.md.
+  mcp-wger:
+    build:
+      context: ./services/_mcp
+      args:
+        MCP_PKG: "@juxsta/wger-mcp@1.1.1"   # scoped pkg; pin the version
+    restart: unless-stopped
+
+    depends_on:
+      wger-nginx:
+        condition: service_healthy
+
+    environment:
+      WGER_API_URL: http://wger-nginx/api/v2    # internal upstream, not wger.de
+      WGER_API_KEY: ${WGER_MCP_TOKEN:-}         # .env namespace -> image var
+
+    expose:
+      - "8000"
+
+    # For local testing — set WGER_MCP_PORT=8080 in .env (empty on Dokploy)
+    ports:
+      - ${WGER_MCP_PORT:-}:8000
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
   # ── Linkding (Bookmarks) ────────────────────────────────────────────────
   linkding:
     image: sissbruecker/linkding:1.45.0-alpine

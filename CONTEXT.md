@@ -39,7 +39,7 @@ _Avoid_: прокси, шлюз
 - **Бэклог задач**: Vikunja. Анализ в vikunja-vs-plane. Легковесный (Go+Vue, ~13MB RAM), 3 MCP-сервера, Pi 5 совместим. → [ADR 0002](docs/adr/0002-vikunja-for-tasks.md)
 - **Фокус-цели**: Self-hosted решение (своя разработка, позже). Временно — через MCP Dashboard.
 - **Финансы**: Firefly III (self-hosted). Без банк-синхронизации, ручной ввод + CSV. MCP: `fabianonetto/mcp-server-firefly-iii` (66 инструментов). → [ADR 0003](docs/adr/0003-firefly-iii-finances.md)
-- **Здоровье (gym + питание)**: Wger (self-hosted). MCP: `Juxsta/wger-mcp` (8 инструментов). Базовые замеры — позже.
+- **Здоровье (gym + питание)**: Wger (self-hosted). MCP: `@juxsta/wger-mcp` (9 инструментов). Базовые замеры — позже.
 - **Трекер привычек**: BeaverHabits (self-hosted). Rust + SQLite, ультра-лёгкий. MCP-обёртку написать.
 - **Тайм-трекер**: OpenTickly (self-hosted). Toggl API-compatible, AI-CLI, OpenAPI spec. MCP-обёртка поверх Toggl API.
 - **Почта**: Gmail через встроенный Hermes-скилл Google Workspace. OAuth2 авторизация. Не входит в Blueprint — используется встроенная интеграция Hermes. **Setup pending** (Google Cloud проект + OAuth креды).
@@ -50,7 +50,7 @@ _Avoid_: прокси, шлюз
 - **Топология интеграции (этап 2)**: Каждое self-hosted направление — remote MCP по HTTP/SSE, контейнер в Blueprint, за Traefik-поддоменом `mcp-<service>.dashboard.example.com`, защита Tailscale. Готовые stdio-MCP оборачиваются supergateway (Bridge), либо когда официальный образ есть, но не под целевую арку: Linkding имеет multi-arch образ с HTTP → напрямую; Firefly III — образ только amd64, поэтому npm-пакет через Bridge. Свои MCP — Python + FastMCP. Креды сервисов — в корневом `.env`. → [ADR 0007](docs/adr/0007-mcp-integration-topology.md)
   - **Vikunja**: `democratize-technology/vikunja-mcp` (TS, полное покрытие) + supergateway.
   - **Firefly III**: `mcp-server-firefly-iii` (66 tools, npm), Bridge через `services/_mcp` — официальный образ только amd64, не идёт на Pi (arm64).
-  - **Wger**: `Juxsta/wger-mcp` (12 tools) + supergateway. Риск: проверить настраиваемость URL self-hosted инстанса.
+  - **Wger**: `@juxsta/wger-mcp` (9 tools) + supergateway. URL self-hosted инстанса настраивается через `WGER_API_URL` (спайк #14 закрыт). Настройка — [`services/wger/README.md`](services/wger/README.md).
   - **Linkding**: `chickenzord/linkding-mcp` (Go), нативный HTTP, официальный образ.
   - **BeaverHabits**: свой FastMCP поверх REST API (`/api/v1/...`).
   - **OpenTickly**: свой FastMCP поверх Toggl API v9 — или форк Toggl-MCP с override base URL.
