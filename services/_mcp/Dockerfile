@@ -5,9 +5,11 @@
 # so Hermes can reach it over HTTP/SSE (through Traefik + Tailscale) like any
 # other service in the Blueprint.
 #
-# Use ONLY for MCP servers that ship stdio-only and have no official Docker
-# image (Vikunja, Wger). MCP servers with native HTTP + an official image
-# (Firefly III, Linkding) run their own image directly — no bridge.
+# Use for MCP servers that ship stdio-only and have no official Docker image
+# (Vikunja, Wger), OR whose official image has no build for the target arch
+# (Firefly III: image is amd64-only, npm package is multi-arch — bridge it on
+# the Pi). MCP servers with a native-HTTP image for the target arch (Linkding)
+# run their own image directly — no bridge.
 #
 # Conventions (see docs/mcp/CONVENTIONS.md):
 #   • Pin both supergateway AND the wrapped package — never :latest.
@@ -40,7 +42,11 @@ RUN npm install -g "supergateway@${SUPERGATEWAY_VERSION}" "${MCP_PKG}"
 
 EXPOSE 8000
 
-# stdio -> streamable-HTTP. `npx -y` resolves the already-installed global pkg.
+# stdio -> streamable-HTTP. Use `npx --no-install` so npx resolves the package
+# already installed globally above and NEVER contacts the npm registry at
+# runtime — `npx -y` would hit registry.npmjs.org on every cold start and fail
+# on the internal (egress-less) network with EAI_AGAIN. `${MCP_PKG%@*}` strips
+# the trailing `@version` so npx matches the installed name.
 # JSON exec form (sh -c) so the linter is happy and signals reach supergateway;
 # sh is still needed to expand ${MCP_PKG} / ${MCP_PORT} at runtime.
-CMD ["sh", "-c", "exec supergateway --stdio \"npx -y ${MCP_PKG}\" --outputTransport streamableHttp --port \"${MCP_PORT}\" --healthEndpoint /healthz"]
+CMD ["sh", "-c", "exec supergateway --stdio \"npx --no-install ${MCP_PKG%@*}\" --outputTransport streamableHttp --port \"${MCP_PORT}\" --healthEndpoint /healthz"]

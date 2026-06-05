@@ -130,6 +130,52 @@ services:
       - internal
       - dokploy-network
 
+  # ── MCP: Vikunja (supergateway bridge) ─────────────────────────────────
+  mcp-vikunja:
+    build:
+      context: ./services/_mcp
+      args:
+        MCP_PKG: "@democratize-technology/vikunja-mcp@0.2.0"
+    restart: unless-stopped
+
+    depends_on:
+      vikunja:
+        condition: service_healthy
+
+    environment:
+      # The MCP uses this URL verbatim — it must include the /api/v1 suffix,
+      # otherwise calls hit the Vikunja frontend and fail ("Unexpected token '<'").
+      VIKUNJA_URL: http://vikunja:3456/api/v1
+      # API token from the Vikunja UI (Settings → API tokens), format tk_…
+      VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}
+
+    expose:
+      - "8000"
+
+    # Hermes runs on the same host and connects via this published port:
+    #   http://127.0.0.1:${VIKUNJA_MCP_PORT}/mcp
+    # Pinned to 8765 by default so the port survives redeploys — an empty value
+    # publishes 8000 to a RANDOM host port. Override via VIKUNJA_MCP_PORT.
+    # Alternative: set it empty and route via an mcp-vikunja subdomain in Dokploy.
+    ports:
+      - ${VIKUNJA_MCP_PORT:-8765}:8000
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
+
   # ── Firefly III (Finances) ─────────────────────────────────────────────
   firefly-app:
     image: fireflyiii/core:version-6.6.3
@@ -200,6 +246,47 @@ services:
 
     networks:
       - internal
+
+  # ── Firefly III MCP (bridge: stdio npm pkg → HTTP) ─────────────────────
+  # Upstream ghcr image is amd64-only; the npm package is multi-arch, so on
+  # the Pi (arm64) we wrap it with the shared supergateway bridge instead.
+  mcp-firefly:
+    build:
+      context: ./services/_mcp
+      args:
+        MCP_PKG: "mcp-server-firefly-iii@3.0.0"
+    restart: unless-stopped
+
+    depends_on:
+      firefly-app:
+        condition: service_started
+
+    environment:
+      FIREFLY_URL: http://firefly-app:8080
+      FIREFLY_TOKEN: ${FIREFLY_MCP_TOKEN:-}
+
+    expose:
+      - "8000"
+
+    # For local testing — set FIREFLY_MCP_PORT in .env
+    ports:
+      - ${FIREFLY_MCP_PORT:-}:8000
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    networks:
+      - internal
+      - dokploy-network
 
   # ── Wger (Health/Fitness) ──────────────────────────────────────────────
   wger-web:
@@ -562,6 +649,42 @@ services:
       - internal
       - dokploy-network
 
+  # ── Vaultwarden (Passwords) ────────────────────────────────────────────
+  vaultwarden:
+    image: vaultwarden/server:1.36.0-alpine  # Rust/alpine, single container, embedded SQLite
+    restart: unless-stopped
+
+    environment:
+      # MUST match the public domain; use https in production or WebAuthn/passkeys
+      # and attachment/admin links break.
+      DOMAIN: ${VAULTWARDEN_DOMAIN:-http://passwords.example.com}
+      # Registration stays open; real protection is Tailscale (no SSO needed).
+      SIGNUPS_ALLOWED: ${VAULTWARDEN_SIGNUPS_ALLOWED:-true}
+      # Argon2 PHC hash — generate with: docker run --rm -it vaultwarden/server /vaultwarden hash
+      # Empty disables the /admin panel entirely.
+      ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:-}
+
+    # SQLite + attachments live here. Named volume so data survives redeploys
+    # independently of the Dokploy git-clone dir (db is created automatically).
+    volumes:
+      - vaultwarden_data:/data
+
+    # For local testing — set VAULTWARDEN_PORT=9100 in .env.
+    # Vaultwarden's Rocket server listens on container port 80 by default.
+    ports:
+      - ${VAULTWARDEN_PORT:-}:80
+
+    # 192M (not 128M): server-side Argon2id verification of ADMIN_TOKEN spikes
+    # ~64 MiB transiently on each /admin login — headroom for the no-swap Pi 5.
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+    networks:
+      - internal
+      - dokploy-network
+
 volumes:
   postgres_data:
   redis_data:
@@ -572,6 +695,7 @@ volumes:
   wger_celery_beat:
   linkding_data:
   beaverhabits_data:
+  vaultwarden_data:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
