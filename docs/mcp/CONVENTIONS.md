@@ -20,7 +20,6 @@
 |--------|-----|-----------|
 | Vikunja | `@democratize-technology/vikunja-mcp` | bridge |
 | Firefly III | `mcp-server-firefly-iii` (npm) | bridge¹ |
-| Wger | `Juxsta/wger-mcp` | bridge |
 | Linkding | `ghcr.io/chickenzord/linkding-mcp` | native (`BIND_ADDR`) |
 | BeaverHabits | свой FastMCP | native |
 | OpenTickly | свой FastMCP / форк Toggl-MCP | native |
@@ -46,6 +45,12 @@
   (меняется флагом `--streamableHttpPath`), health — на `/healthz`. Полный URL,
   который регистрируется в Hermes: `https://mcp-<svc>.dashboard.example.com/mcp`.
   Native-образы могут использовать свой путь — сверяйтесь с README образа.
+- **`--stateful` обязателен** (уже в `services/_mcp/Dockerfile`). В дефолтном
+  stateless-режиме supergateway 3.4.0 падает с uncaught `No connection
+  established for request ID: N`, когда ответ stdio-ребёнка приходит на уже
+  закрытое HTTP-соединение (таймаут/дисконнект клиента) — процесс умирает (exit 1),
+  контейнер уходит в restart-loop, `/healthz` продолжает врать `ok`, а Hermes
+  теряет тулсет до перезапуска. Stateful даёт каждой сессии свой транспорт.
 - Защита — Tailscale; собственной авторизации на MCP-эндпоинте нет.
 - **MCP → свой сервис** ходит по `internal` (внутреннее имя хоста), не через публичный URL. Наружу через Tailscale выходит только Hermes → MCP.
 - **Hermes на том же хосте (текущий случай).** Тогда поддомен не нужен — проще
@@ -61,7 +66,6 @@
 |--------|----------------|
 | Vikunja | `http://vikunja:3456` |
 | Firefly III | `http://firefly-app:8080` |
-| Wger | `http://wger-nginx:80` |
 | Linkding | `http://linkding:9090` |
 | BeaverHabits | `http://beaverhabits:8080` |
 | OpenTickly | `http://opentickly:8080` |

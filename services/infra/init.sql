@@ -2,5 +2,4 @@
 -- Each service gets its own database. Apps create tables via migrations.
 CREATE DATABASE vikunja;
 CREATE DATABASE firefly;
-CREATE DATABASE wger;
 CREATE DATABASE opentickly;

@@ -6,7 +6,7 @@
 # other service in the Blueprint.
 #
 # Use for MCP servers that ship stdio-only and have no official Docker image
-# (Vikunja, Wger), OR whose official image has no build for the target arch
+# (Vikunja), OR whose official image has no build for the target arch
 # (Firefly III: image is amd64-only, npm package is multi-arch — bridge it on
 # the Pi). MCP servers with a native-HTTP image for the target arch (Linkding)
 # run their own image directly — no bridge.
@@ -49,4 +49,16 @@ EXPOSE 8000
 # the trailing `@version` so npx matches the installed name.
 # JSON exec form (sh -c) so the linter is happy and signals reach supergateway;
 # sh is still needed to expand ${MCP_PKG} / ${MCP_PORT} at runtime.
-CMD ["sh", "-c", "exec supergateway --stdio \"npx --no-install ${MCP_PKG%@*}\" --outputTransport streamableHttp --port \"${MCP_PORT}\" --healthEndpoint /healthz"]
+#
+# --stateful is REQUIRED: in the default stateless mode supergateway 3.4.0
+# shares one stdio child across per-request transports, and when a child
+# response arrives for a request whose HTTP connection already closed (client
+# timeout / disconnect) it throws `No connection established for request ID: N`
+# from inside the stdout socket handler — an UNCAUGHT exception that kills the
+# whole process (exit 1). The container restart-loops, /healthz keeps lying
+# "ok", and the connected agent (Hermes) loses its toolset until restarted.
+# Stateful mode gives each MCP session its own transport + id mapping, so a
+# late/orphaned response is never written to a stranger's closed connection.
+# --sessionTimeout reaps sessions (and their child process) abandoned without an
+# explicit terminate — otherwise they'd leak forever on the Pi across restarts.
+CMD ["sh", "-c", "exec supergateway --stdio \"npx --no-install ${MCP_PKG%@*}\" --outputTransport streamableHttp --stateful --sessionTimeout 1800000 --port \"${MCP_PORT}\" --healthEndpoint /healthz"]

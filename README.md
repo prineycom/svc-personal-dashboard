@@ -23,7 +23,6 @@ svc-personal-dashboard/
 ├── services/
 │   ├── vikunja/            ← tasks
 │   ├── firefly-iii/        ← finances
-│   ├── wger/               ← gym + nutrition (+ nginx.conf)
 │   ├── linkding/           ← bookmarks
 │   ├── beaverhabits/       ← habits
 │   ├── opentickly/         ← time tracking
@@ -37,14 +36,12 @@ svc-personal-dashboard/
 |---------|---------|-----------|---------------|---------------------|---------|
 | [Vikunja](https://vikunja.io) | Tasks | `vikunja` | `3456` | `tasks.example.com` | Shared PG |
 | [Firefly III](https://firefly-iii.org) | Finances | `firefly-app` | `8080` | `finance.example.com` | Shared PG |
-| [Wger](https://wger.de) | Gym + Nutrition | `wger-nginx` | `80` | `fitness.example.com` | Shared PG + Redis |
 | [Linkding](https://github.com/sissbruecker/linkding) | Bookmarks | `linkding` | `9090` | `bookmarks.example.com` | SQLite |
 | [BeaverHabits](https://github.com/daya0576/beaverhabits) | Habits | `beaverhabits` | `8080` | `habits.example.com` | SQLite |
 | [OpenTickly](https://github.com/CorrectRoadH/OpenTickly) | Time tracking | `opentickly` | `8080` | `time.example.com` | Shared PG + Redis |
 
-Supporting containers (no public route): `postgres`, `redis`, `firefly-cron`,
-`wger-web`, `wger-celery-worker`, `wger-celery-beat`. **12 containers total**,
-~900 MB idle / ~1.3 GB peak on an 8 GB Pi 5.
+Supporting containers (no public route): `postgres`, `redis`, `firefly-cron`.
+Comfortably under ~1 GB idle on an 8 GB Pi 5.
 
 ### MCP layer (stage 2 — Hermes integration)
 
@@ -58,7 +55,6 @@ over the `internal` network; only Hermes → MCP crosses the tailnet.
 |-----|--------|-----------|
 | `mcp-vikunja` | `@democratize-technology/vikunja-mcp` | bridge (supergateway) |
 | `mcp-firefly` | `ghcr.io/fabianonetto/mcp-server-firefly-iii` | native HTTP image |
-| `mcp-wger` | `Juxsta/wger-mcp` | bridge (supergateway) |
 | `mcp-linkding` | `ghcr.io/chickenzord/linkding-mcp` | native HTTP image |
 | `mcp-beaverhabits` | own FastMCP | native HTTP |
 | `mcp-opentickly` | own FastMCP / Toggl-MCP fork | native HTTP |
@@ -203,12 +199,6 @@ FIREFLY_DB_PASSWORD=<strong-random>
 FIREFLY_STATIC_CRON_TOKEN=<random-32-chars>
 FIREFLY_APP_URL=http://finance.example.com           # MUST match the domain
 
-# Wger
-WGER_SECRET_KEY=<random>
-WGER_SIGNING_KEY=<random>
-WGER_DJANGO_DB_PASSWORD=<strong-random>
-WGER_CSRF_TRUSTED_ORIGINS=http://fitness.example.com # MUST match the domain
-
 # Linkding (no signup page — these auto-create the first user on startup)
 LD_CSRF_TRUSTED_ORIGINS=http://bookmarks.example.com # MUST match the domain
 LD_SUPERUSER_NAME=admin
@@ -240,7 +230,6 @@ For each web service, open it in Dokploy → **Domains** → **Add Domain**:
 |---------------------|------|--------------------|--------------------|
 | `vikunja`      | `tasks.example.com`     | `3456` | `web`, HTTPS off |
 | `firefly-app`  | `finance.example.com`   | `8080` | `web`, HTTPS off |
-| `wger-nginx`   | `fitness.example.com`   | `80`   | `web`, HTTPS off |
 | `linkding`     | `bookmarks.example.com` | `9090` | `web`, HTTPS off |
 | `beaverhabits` | `habits.example.com`    | `8080` | `web`, HTTPS off |
 | `opentickly`   | `time.example.com`      | `8080` | `web`, HTTPS off |
@@ -260,8 +249,7 @@ For each web service, open it in Dokploy → **Domains** → **Add Domain**:
 
 Click **Deploy** in Dokploy (or push to `main` if the webhook is set). Dokploy
 pulls the repo, renders the compose with your env, and recreates the containers.
-First boot runs database migrations and (for Wger) collects static files, so
-give it a minute.
+First boot runs database migrations, so give it a minute.
 
 ### Step 8 — Verify
 
@@ -299,25 +287,18 @@ Full env reference and step-by-step (token creation, the mandatory `/api/v1`
 suffix, tool-list check) — [`services/_mcp/README.md`](services/_mcp/README.md)
 → **Vikunja MCP — setup**.
 
-### Step 9 — Create the first accounts (and change Wger's default)
+### Step 9 — Create the first accounts
 
 Most services have **no default credentials** — you register the first user
-through the web UI, and that user becomes the owner/admin. Two exceptions:
+through the web UI, and that user becomes the owner/admin. One exception:
 
 | Service | First login | Action |
 |---------|-------------|--------|
-| **Wger** | Ships a built-in **`admin` / `adminadmin`** | **Change it immediately** — log in and change the password, or run the command below |
 | **Linkding** | No signup page; **no user exists** until you create one | Set `LD_SUPERUSER_NAME` / `LD_SUPERUSER_PASSWORD` (auto-created on startup) or run `createsuperuser` |
 | Vikunja | Open registration | Register the first account |
 | Firefly III | First registered account becomes owner | Register the first account |
 | OpenTickly | Registration via UI | Register the first account |
 | BeaverHabits | Signup of the first user | Register the first account |
-
-Change the Wger default password:
-
-```bash
-docker exec -it <wger-web> sh -c 'cd /home/wger/src && python3 manage.py changepassword admin'
-```
 
 Create a Linkding user by hand (if you did not set `LD_SUPERUSER_*`):
 
@@ -326,8 +307,7 @@ docker exec -it <linkding> python manage.py createsuperuser
 ```
 
 > The stack sits behind Tailscale, so these accounts are not exposed to the
-> public internet — but `admin/adminadmin` is still a well-known default and
-> should not survive first boot.
+> public internet.
 
 ---
 
@@ -340,16 +320,6 @@ reasoning is not lost.
   Vue frontend calls the wrong API host and login breaks.
 - **Firefly III** — needs `APP_URL` set to the domain; `TRUSTED_PROXIES: "**"`
   is already set so it honours `X-Forwarded-*` from Traefik.
-- **Wger** — two non-obvious requirements:
-  - `DJANGO_DEBUG=False` is required so the entrypoint runs `collectstatic` on
-    startup. If it is unset, the `wger_static` volume stays empty and nginx
-    returns **404 for every `/static/` asset**.
-  - `services/wger/nginx.conf` resolves the `wger-web` backend at **runtime**
-    via Docker's embedded DNS (`resolver 127.0.0.11; proxy_pass $variable;`). A
-    static `upstream { server wger-web:8000; }` caches the IP at startup, so a
-    redeploy that gives `wger-web` a new IP leaves nginx stuck on the dead
-    address — **502 "No route to host"** until nginx is restarted.
-  - `CSRF_TRUSTED_ORIGINS` must include the domain or login returns 403.
 - **Linkding** — `LD_CSRF_TRUSTED_ORIGINS` must include the domain for login;
   it has no signup page, so set `LD_SUPERUSER_NAME` / `LD_SUPERUSER_PASSWORD`
   to auto-create the first user (see Step 9).
@@ -380,8 +350,6 @@ reasoning is not lost.
 |---------|--------------|-----|
 | `404 page not found` (plain text) from Traefik | No router matches the Host | Add/repair the domain in Dokploy UI (Step 6); check for DNS typos |
 | `502 Bad Gateway` | Domain points at the host port, not the container port; or backend still booting | Set the **container-internal** port; wait for first-boot migrations |
-| `502 "No route to host"` after a redeploy (Wger) | nginx cached a stale upstream IP | Already mitigated by the runtime resolver in `nginx.conf`; if it recurs, `docker restart <wger-nginx>` |
-| `/static/` returns 404 (Wger) | `collectstatic` did not run | Ensure `DJANGO_DEBUG=False`; one-off: `docker exec <wger-web> sh -c 'cd /home/wger/src && python3 manage.py collectstatic --noinput'` |
 | Page loads but login/POST fails (403) | Missing/incorrect public-URL or CSRF env | Set `*_PUBLICURL` / `APP_URL` / `*CSRF_TRUSTED_ORIGINS` to the domain |
 | `attempt to write a readonly database` (BeaverHabits) | Container user `nobody` can't write the root-owned volume | Run as `user: "0:0"` (already set) |
 | Firefly register does nothing / `$ is not defined` | Password < 16 chars; the broken register.js (upstream) just hides the inline error | Use a password of **≥ 16 characters** |

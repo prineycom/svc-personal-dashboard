@@ -14,7 +14,6 @@ arch run that image directly. See the routing table in
 | MCP | Wrapped package | Bridge? |
 |-----|-----------------|---------|
 | Vikunja ([#12](https://github.com/prineycom/svc-personal-dashboard/issues/12)) | `@democratize-technology/vikunja-mcp` | ✅ yes |
-| Wger ([#14](https://github.com/prineycom/svc-personal-dashboard/issues/14)) | `@juxsta/wger-mcp` ([setup](../wger/README.md)) | ✅ yes |
 | Firefly III ([#13](https://github.com/prineycom/svc-personal-dashboard/issues/13)) | `mcp-server-firefly-iii` ([setup](../../docs/mcp/firefly-iii.md)) | ✅ yes (official image is amd64-only) |
 | Linkding ([#15](https://github.com/prineycom/svc-personal-dashboard/issues/15)) | — | ❌ native HTTP image |
 
