@@ -448,7 +448,7 @@ services:
   # rclone serve webdav with basic-auth. SP clients (desktop/web/mobile) point
   # at https://<host>/webdav/ with SUPERPRODUCTIVITY_WEBDAV_USER/PASSWORD.
   superproductivity-webdav:
-    image: rclone/rclone:1.71.3
+    image: rclone/rclone:sha-3d7b101  # rclone DH has no version tags; sha-tag = pinned commit (v1.71.x, 2026-09-05)
     restart: unless-stopped
     command: >
       serve webdav /data
