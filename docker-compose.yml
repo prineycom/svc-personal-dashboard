@@ -65,6 +65,14 @@ services:
     ports:
       - ${SUPERPRODUCTIVITY_PORT:-}:80
 
+    labels:
+      - traefik.enable=true
+      # tasks.priney.com → this container :80 (domain set in Dokploy UI)
+      - traefik.http.routers.dashboard-superproductivity.rule=Host(`tasks.priney.com`)
+      - traefik.http.routers.dashboard-superproductivity.entrypoints=web
+      - traefik.http.routers.dashboard-superproductivity.service=dashboard-superproductivity
+      - traefik.http.services.dashboard-superproductivity.loadbalancer.server.port=80
+
     deploy:
       resources:
         limits:
