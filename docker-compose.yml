@@ -422,6 +422,56 @@ services:
       - internal
       - dokploy-network
 
+  # ── Super Productivity (Pomodoro / Time Tracker) ────────────────────────
+  # Local-first web app: state lives in browser localStorage; this container
+  # only serves the static Angular app. Multi-device sync goes through the
+  # WebDAV container below (SP's built-in WebDAV sync provider).
+  superproductivity:
+    image: johannesjo/super-productivity:latest  # upstream publishes no version tags
+    restart: unless-stopped
+
+    # For local testing — set SUPERPRODUCTIVITY_PORT=8090 in .env.
+    # Serves on container port 80.
+    ports:
+      - ${SUPERPRODUCTIVITY_PORT:-}:80
+
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+    networks:
+      - internal
+      - dokploy-network
+
+  # ── WebDAV for Super Productivity sync ──────────────────────────────────
+  # rclone serve webdav with basic-auth. SP clients (desktop/web/mobile) point
+  # at https://<host>/webdav/ with SUPERPRODUCTIVITY_WEBDAV_USER/PASSWORD.
+  superproductivity-webdav:
+    image: rclone/rclone:1.71.3
+    restart: unless-stopped
+    command: >
+      serve webdav /data
+      --addr :8080
+      --user ${SUPERPRODUCTIVITY_WEBDAV_USER:-sp}
+      --pass ${SUPERPRODUCTIVITY_WEBDAV_PASSWORD:-changeme-sp-webdav}
+
+    volumes:
+      - superproductivity_webdav:/data
+
+    # For local testing — set SUPERPRODUCTIVITY_WEBDAV_PORT=8091 in .env.
+    ports:
+      - ${SUPERPRODUCTIVITY_WEBDAV_PORT:-}:8080
+
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+    networks:
+      - internal
+      - dokploy-network
+
 volumes:
   postgres_data:
   redis_data:
@@ -430,6 +480,7 @@ volumes:
   linkding_data:
   beaverhabits_data:
   vaultwarden_data:
+  superproductivity_webdav:
 
 # Shared networks.
 # dokploy-network is created by Dokploy; internal is for db/cache/backend traffic.
