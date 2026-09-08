@@ -72,6 +72,16 @@ services:
       - traefik.http.routers.dashboard-superproductivity.entrypoints=web
       - traefik.http.routers.dashboard-superproductivity.service=dashboard-superproductivity
       - traefik.http.services.dashboard-superproductivity.loadbalancer.server.port=80
+      # HTTPS (websecure) — iOS App Transport Security blocks plain http://,
+      # so the app and the WebDAV endpoint need valid TLS certificates.
+      # LE cert via Cloudflare DNS-01 challenge (works for Tailscale-only domains).
+      - traefik.http.routers.dashboard-superproductivity-secure.rule=Host(`tasks.priney.com`)
+      - traefik.http.routers.dashboard-superproductivity-secure.entrypoints=websecure
+      - traefik.http.routers.dashboard-superproductivity-secure.service=dashboard-superproductivity
+      - traefik.http.routers.dashboard-superproductivity-secure.tls.certresolver=letsencrypt
+      # http→https redirect for the app (not for WebDAV — see webdav labels)
+      - traefik.http.routers.dashboard-superproductivity.middlewares=dashboard-sp-redirect
+      - traefik.http.middlewares.dashboard-sp-redirect.redirectscheme.scheme=https
 
     deploy:
       resources:
@@ -100,6 +110,16 @@ services:
     # For local testing — set SUPERPRODUCTIVITY_WEBDAV_PORT=8091 in .env.
     ports:
       - ${SUPERPRODUCTIVITY_WEBDAV_PORT:-}:8080
+
+    labels:
+      - traefik.enable=true
+      # sync.priney.com → WebDAV over HTTPS (iOS ATS requires TLS; plain
+      # http://100.108.52.92:8091 works for desktop but is blocked on iOS).
+      - traefik.http.routers.dashboard-sp-webdav-secure.rule=Host(`sync.priney.com`)
+      - traefik.http.routers.dashboard-sp-webdav-secure.entrypoints=websecure
+      - traefik.http.routers.dashboard-sp-webdav-secure.service=dashboard-sp-webdav
+      - traefik.http.routers.dashboard-sp-webdav-secure.tls.certresolver=letsencrypt
+      - traefik.http.services.dashboard-sp-webdav.loadbalancer.server.port=8080
 
     deploy:
       resources:
