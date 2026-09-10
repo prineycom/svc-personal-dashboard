@@ -21,7 +21,6 @@ svc-personal-dashboard/
 ├── docker-compose.yml      ← flat compose — every container in one file
 ├── .env.example            ← shared env vars (copy to .env)
 ├── services/
-│   ├── vikunja/            ← tasks
 │   ├── firefly-iii/        ← finances
 │   ├── linkding/           ← bookmarks
 │   ├── beaverhabits/       ← habits
@@ -34,7 +33,6 @@ svc-personal-dashboard/
 
 | Service | Purpose | Container | Internal port | Subdomain (example) | Storage |
 |---------|---------|-----------|---------------|---------------------|---------|
-| [Vikunja](https://vikunja.io) | Tasks | `vikunja` | `3456` | `tasks.example.com` | Shared PG |
 | [Firefly III](https://firefly-iii.org) | Finances | `firefly-app` | `8080` | `finance.example.com` | Shared PG |
 | [Linkding](https://github.com/sissbruecker/linkding) | Bookmarks | `linkding` | `9090` | `bookmarks.example.com` | SQLite |
 | [BeaverHabits](https://github.com/daya0576/beaverhabits) | Habits | `beaverhabits` | `8080` | `habits.example.com` | SQLite |
@@ -53,7 +51,6 @@ over the `internal` network; only Hermes → MCP crosses the tailnet.
 
 | MCP | Source | Transport |
 |-----|--------|-----------|
-| `mcp-vikunja` | `@democratize-technology/vikunja-mcp` | bridge (supergateway) |
 | `mcp-firefly` | `ghcr.io/fabianonetto/mcp-server-firefly-iii` | native HTTP image |
 | `mcp-linkding` | `ghcr.io/chickenzord/linkding-mcp` | native HTTP image |
 | `mcp-beaverhabits` | own FastMCP | native HTTP |
@@ -80,7 +77,7 @@ Tailscale (WireGuard)  →  Pi :80
       ▼
 dokploy-traefik  (matches Host(`tasks.example.com`))
       ▼
-container on dokploy-network  (e.g. vikunja:3456)
+container on dokploy-network  (e.g. superproductivity:80)
 ```
 
 > **The whole stack is private.** It is reachable only from devices in your
@@ -188,10 +185,6 @@ COMPOSE_PROJECT_NAME=pd
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<strong-random>
 
-# Vikunja
-VIKUNJA_DATABASE_PASSWORD=<strong-random>
-VIKUNJA_SERVICE_SECRET=<random>
-VIKUNJA_SERVICE_PUBLICURL=http://tasks.example.com   # MUST match the domain
 
 # Firefly III
 FIREFLY_APP_KEY=base64:$(openssl rand -base64 32)    # exactly this format
@@ -205,7 +198,7 @@ LD_SUPERUSER_NAME=admin
 LD_SUPERUSER_PASSWORD=<strong-random>
 ```
 
-The `*_PORT` variables (e.g. `VIKUNJA_PORT=3456`) are **optional**. Setting one
+The `*_PORT` variables (e.g. `VAULTWARDEN_PORT=9100`) are **optional**. Setting one
 publishes that container's port on the host so you can reach it directly at
 `http://<PI-TAILSCALE-IP>:<port>` — handy for debugging. Leave them empty in
 production if you only want Traefik routing.
@@ -228,17 +221,14 @@ For each web service, open it in Dokploy → **Domains** → **Add Domain**:
 
 | Service (container) | Host | **Container Port** | Entrypoint / HTTPS |
 |---------------------|------|--------------------|--------------------|
-| `vikunja`      | `tasks.example.com`     | `3456` | `web`, HTTPS off |
 | `firefly-app`  | `finance.example.com`   | `8080` | `web`, HTTPS off |
 | `linkding`     | `bookmarks.example.com` | `9090` | `web`, HTTPS off |
 | `beaverhabits` | `habits.example.com`    | `8080` | `web`, HTTPS off |
 | `opentickly`   | `time.example.com`      | `8080` | `web`, HTTPS off |
-| `mcp-vikunja`  | `mcp-vikunja.dashboard.example.com` | `8000` | `web`, HTTPS off |
 
 > **MCP endpoints follow the `mcp-<svc>.dashboard.example.com` pattern** and all
 > serve streamable-HTTP on container port `8000`. Register them in the UI the
 > same way — no `traefik.*` labels in `docker-compose.yml`. Hermes then connects
-> to `https://mcp-vikunja.dashboard.example.com/mcp`.
 
 > **Use the container-internal port, not the published host port.** Traefik
 > reaches containers *inside* `dokploy-network`, so OpenTickly is `8080` (its
@@ -270,22 +260,10 @@ Then open each subdomain in a browser on a tailnet device. If a name does not
 resolve, flush the client DNS cache (macOS:
 `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`).
 
-**Verify the Vikunja MCP bridge.** Generate a Vikunja API token in the Vikunja UI
-(**Settings → API tokens**) and set it in `.env` as `VIKUNJA_MCP_TOKEN` — this is
-the token the MCP uses to call Vikunja, distinct from `VIKUNJA_SERVICE_SECRET`.
-After deploy, probe the bridge on the host:
-
-```bash
-docker compose exec mcp-vikunja wget -qO- http://localhost:8000/healthz   # → ok
-```
-
 Expect a healthy response on `/healthz` and a reachable MCP endpoint on `/mcp`.
-Then, from Hermes (pointed at `https://mcp-vikunja.dashboard.example.com/mcp`),
-create a Vikunja task and read it back to confirm end-to-end connectivity.
 
 Full env reference and step-by-step (token creation, the mandatory `/api/v1`
 suffix, tool-list check) — [`services/_mcp/README.md`](services/_mcp/README.md)
-→ **Vikunja MCP — setup**.
 
 ### Step 9 — Create the first accounts
 
@@ -295,7 +273,6 @@ through the web UI, and that user becomes the owner/admin. One exception:
 | Service | First login | Action |
 |---------|-------------|--------|
 | **Linkding** | No signup page; **no user exists** until you create one | Set `LD_SUPERUSER_NAME` / `LD_SUPERUSER_PASSWORD` (auto-created on startup) or run `createsuperuser` |
-| Vikunja | Open registration | Register the first account |
 | Firefly III | First registered account becomes owner | Register the first account |
 | OpenTickly | Registration via UI | Register the first account |
 | BeaverHabits | Signup of the first user | Register the first account |
@@ -316,7 +293,6 @@ docker exec -it <linkding> python manage.py createsuperuser
 These are baked into `docker-compose.yml`/`nginx.conf`; listed here so the
 reasoning is not lost.
 
-- **Vikunja** — `VIKUNJA_SERVICE_PUBLICURL` must equal the public URL, or the
   Vue frontend calls the wrong API host and login breaks.
 - **Firefly III** — needs `APP_URL` set to the domain; `TRUSTED_PROXIES: "**"`
   is already set so it honours `X-Forwarded-*` from Traefik.

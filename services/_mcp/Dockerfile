@@ -6,7 +6,7 @@
 # other service in the Blueprint.
 #
 # Use for MCP servers that ship stdio-only and have no official Docker image
-# (Vikunja), OR whose official image has no build for the target arch
+# OR whose official image has no build for the target arch
 # (Firefly III: image is amd64-only, npm package is multi-arch — bridge it on
 # the Pi). MCP servers with a native-HTTP image for the target arch (Linkding)
 # run their own image directly — no bridge.
@@ -21,7 +21,6 @@
 #   build:
 #     context: ./services/_mcp
 #     args:
-#       MCP_PKG: "@democratize-technology/vikunja-mcp@0.2.0"
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:22-alpine
 
@@ -29,7 +28,6 @@ FROM node:22-alpine
 ARG SUPERGATEWAY_VERSION=3.4.0
 
 # The stdio MCP npm package WITH a pinned version,
-# e.g. @democratize-technology/vikunja-mcp@0.2.0
 ARG MCP_PKG
 
 # Carry MCP_PKG into the runtime layer (ARG is build-time only; CMD needs ENV).

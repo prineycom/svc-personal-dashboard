@@ -29,14 +29,14 @@ HTTP/SSE-эндпоинт MCP-сервера направления, развё�
 _Avoid_: MCP-порт, коннектор
 
 **Bridge**:
-Контейнер с supergateway/mcpo, оборачивающий готовый stdio-only MCP-сервер в HTTP/SSE. Применяется там, где у готового MCP нет нативного HTTP/Docker-образа (Vikunja) либо образ не собран под целевую арку (Firefly III — образ только amd64).
+Контейнер с supergateway/mcpo, оборачивающий готовый stdio-only MCP-сервер в HTTP/SSE. Применяется там, где у готового MCP нет нативного HTTP/Docker-образа либо образ не собран под целевую арку (Firefly III — образ только amd64).
 _Avoid_: прокси, шлюз
 
 ## Decisions
 
 - **Scope**: Гибрид — внешние сервисы только там где нет self-host аналога (Google Calendar). Self-host для всего остального. Hermes как единая точка входа через MCP. → [ADR 0001](docs/adr/0001-hybrid-architecture.md)
 - **Ежедневник**: Не отдельный direction, а оркестрационный сценарий Hermes. Утренний/вечерний cron собирает данные из всех направлений и формирует summary.
-- **Бэклог задач**: Vikunja. Анализ в vikunja-vs-plane. Легковесный (Go+Vue, ~13MB RAM), 3 MCP-сервера, Pi 5 совместим. → [ADR 0002](docs/adr/0002-vikunja-for-tasks.md)
+- **Бэклог задач**: Super Productivity (заменяет Vikunja с 09.2026, синк через WebDAV).
 - **Фокус-цели**: Self-hosted решение (своя разработка, позже). Временно — через MCP Dashboard.
 - **Финансы**: Firefly III (self-hosted). Без банк-синхронизации, ручной ввод + CSV. MCP: `fabianonetto/mcp-server-firefly-iii` (66 инструментов). → [ADR 0003](docs/adr/0003-firefly-iii-finances.md)
 - **Трекер привычек**: BeaverHabits (self-hosted). Rust + SQLite, ультра-лёгкий. MCP-обёртку написать.
@@ -47,14 +47,13 @@ _Avoid_: прокси, шлюз
 - **Закладки/Медиа**: Linkding (self-hosted). Ультра-лёгкий (1 контейнер, ~60 МБ RAM, SQLite), 2 MCP-сервера, ARM64 alpine, авто-архивация через Internet Archive. AI tagging/summaries — через Hermes при сохранлении. → [ADR 0005](docs/adr/0005-linkding-for-bookmarks.md)
 - **MCP Dashboard**: Отключён. Создан преждевременно. Вернуть после редизайна.
 - **Топология интеграции (этап 2)**: Каждое self-hosted направление — remote MCP по HTTP/SSE, контейнер в Blueprint, за Traefik-поддоменом `mcp-<service>.dashboard.example.com`, защита Tailscale. Готовые stdio-MCP оборачиваются supergateway (Bridge), либо когда официальный образ есть, но не под целевую арку: Linkding имеет multi-arch образ с HTTP → напрямую; Firefly III — образ только amd64, поэтому npm-пакет через Bridge. Свои MCP — Python + FastMCP. Креды сервисов — в корневом `.env`. → [ADR 0007](docs/adr/0007-mcp-integration-topology.md)
-  - **Vikunja**: `democratize-technology/vikunja-mcp` (TS, полное покрытие) + supergateway.
   - **Firefly III**: `mcp-server-firefly-iii` (66 tools, npm), Bridge через `services/_mcp` — официальный образ только amd64, не идёт на Pi (arm64).
   - **Linkding**: `chickenzord/linkding-mcp` (Go), нативный HTTP, официальный образ.
   - **BeaverHabits**: свой FastMCP поверх REST API (`/api/v1/...`).
   - **OpenTickly**: свой FastMCP поверх Toggl API v9 — или форк Toggl-MCP с override base URL.
 - **Деплой**: Монорепо Blueprint `prineycom/svc-personal-dashboard` (private) на основе template-service. Плоский `docker-compose.yml` — все контейнеры в одном файле. Каждый сервис в `services/<name>/` с `.env.example` для читаемости. Один репозиторий, один Dokploy deploy. → [ADR 0006](docs/adr/0006-monorepo-blueprint.md)
 - **Прежний `personal-dashboard`**: Удалён/переделан. Не референсировать, не переносить код.
-- **Shared PostgreSQL**: Один инстанс PostgreSQL 17 (описан в корневом compose) с отдельными базами для Vikunja, Firefly III, OpenTickly. BeaverHabits и Linkding используют встроенный SQLite.
+- **Shared PostgreSQL**: Один инстанс PostgreSQL 17 (описан в корневом compose) с отдельными базами для Firefly III, OpenTickly. BeaverHabits и Linkding используют встроенный SQLite.
 - **Shared Redis**: Один инстанс Redis (описан в корневом compose) для OpenTickly и других сервисов.
 - **Доступ**: Все сервисы за Tailscale. Авторизация не критична — каждый сервис имеет свой логин, но реальная защита сетевая (Tailscale WireGuard). SSO не нужен.
 
@@ -64,7 +63,6 @@ _Avoid_: прокси, шлюз
 |--------|-------|-------------|------|------------|-------|
 | Infra | `postgres:17-alpine` | 1 | Shared | ~50 MB | ✅ |
 | Infra | `redis:7-alpine` | 1 | Shared | ~20 MB | ✅ |
-| Vikunja | `vikunja/vikunja:2.3.0` | 1 | Shared PG | ~30-50 MB | ✅ |
 | Firefly III | `fireflyiii/core:version-6.6.3` + `alpine` cron | 2 | Shared PG | ~100-170 MB | ✅ |
 | Linkding | `sissbruecker/linkding:1.45.0-alpine` | 1 | SQLite | ~50 MB | ✅ |
 | BeaverHabits | `daya0576/beaverhabits:0.9.1` | 1 | SQLite (DATABASE mode) | ~10-20 MB | ✅ |
@@ -77,7 +75,6 @@ _Avoid_: прокси, шлюз
 
 **В Blueprint (Docker Compose):**
 1. PostgreSQL 17 + Redis 7 — в корневом `docker-compose.yml`
-2. `services/vikunja/` — задачи (1 контейнер)
 3. `services/firefly-iii/` — финансы (2 контейнера: app + cron)
 4. `services/linkding/` — закладки (1 контейнер)
 5. `services/beaverhabits/` — привычки (1 контейнер)
@@ -94,7 +91,6 @@ _Avoid_: прокси, шлюз
 
 | Сервис | Поддомен |
 |--------|----------|
-| Vikunja | `tasks.dashboard.example.com` |
 | Firefly III | `finance.dashboard.example.com` |
 | Linkding | `bookmarks.dashboard.example.com` |
 | BeaverHabits | `habits.dashboard.example.com` |
@@ -110,7 +106,7 @@ _Avoid_: прокси, шлюз
 > **При**: *Вызывает Linkding MCP → `create_bookmark` + AI summary через LLM* → "Сохранила. Тема: архитектура микросервисов. Метки: dev, architecture."
 >
 > **Паша**: "Утренний обзор."
-> **При**: *Cron собирает: Vikunja задачи на сегодня, Firefly III баланс, BeaverHabits утренние привычки, OpenTickly вчерашнее время, Linkding непрочитанные закладки, Google Calendar события* → формирует summary.
+> **При**: *Cron собирает: Firefly III баланс, BeaverHabits утренние привычки, OpenTickly вчерашнее время, Linkding непрочитанные закладки, Google Calendar события* → формирует summary.
 >
 > **Паша**: "Добавь новый сервис в дашборд."
 > **При**: *Создаёт новую Service Directory `services/<name>/` в Blueprint, добавляет include в корневой compose, пушит* → "Готово. После деплоя новый сервис поднимется автоматически."

@@ -18,7 +18,6 @@
 
 | Сервис | MCP | Транспорт |
 |--------|-----|-----------|
-| Vikunja | `@democratize-technology/vikunja-mcp` | bridge |
 | Firefly III | `mcp-server-firefly-iii` (npm) | bridge¹ |
 | Linkding | `ghcr.io/chickenzord/linkding-mcp` | native (`BIND_ADDR`) |
 | BeaverHabits | свой FastMCP | native |
@@ -56,7 +55,7 @@
 - **Hermes на том же хосте (текущий случай).** Тогда поддомен не нужен — проще
   и надёжнее опубликовать фиксированный host-порт и ходить на
   `http://127.0.0.1:<port>/mcp`. Зафиксируй `<SVC>_MCP_PORT` свободным портом
-  (пустое значение = случайный порт, слетает при каждом редеплое). Vikunja MCP
+  (пустое значение = случайный порт, слетает при каждом редеплое). MCP
   закреплён на `8765` (`http://127.0.0.1:8765/mcp`). Поддомен `mcp-<svc>` нужен,
   только если Hermes когда-нибудь переедет на другую машину.
 
@@ -64,7 +63,6 @@
 
 | Сервис | Внутренний URL |
 |--------|----------------|
-| Vikunja | `http://vikunja:3456` |
 | Firefly III | `http://firefly-app:8080` |
 | Linkding | `http://linkding:9090` |
 | BeaverHabits | `http://beaverhabits:8080` |
@@ -124,48 +122,17 @@ Healthcheck — `wget` против health-пути (bridge: `/healthz`; native 
       - dokploy-network
 ```
 
-### Bridge (Vikunja)
+### Bridge
 
 ```yaml
-  mcp-vikunja:
-    build:
-      context: ./services/_mcp
-      args:
-        MCP_PKG: "@democratize-technology/vikunja-mcp@0.2.0"
-    restart: unless-stopped
-    depends_on:
-      vikunja:
-        condition: service_healthy
-    environment:
-      VIKUNJA_URL: http://vikunja:3456/api/v1   # /api/v1 обязателен
-      VIKUNJA_API_TOKEN: ${VIKUNJA_MCP_TOKEN:-}  # токен формата tk_…
-    expose:
-      - "8000"
-    ports:
-      - ${VIKUNJA_MCP_PORT:-}:8000
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8000/healthz"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-    networks:
-      - internal
-      - dokploy-network
 ```
 
 > Точные имена env-переменных зависят от пакета — сверяйтесь с его README и
-> мапьте на ключи `<SVC>_MCP_*` в корневом `.env`. Для `vikunja-mcp@0.2.0`:
-> `VIKUNJA_URL` (берётся как есть — суффикс `/api/v1` обязателен, иначе запросы
-> уходят на фронтенд) и `VIKUNJA_API_TOKEN` (токен формата `tk_…` из UI Vikunja).
+> мапьте на ключи `<SVC>_MCP_*` в корневом `.env`.
 
 **Firefly III** использует тот же bridge — официальный образ только amd64, а
 npm-пакет мультиарх. Пошаговая настройка — [`firefly-iii.md`](firefly-iii.md).
-Отличие от Vikunja — `MCP_PKG` и env-переменные пакета:
+Отличия между сервисами — `MCP_PKG` и env-переменные пакета:
 
 ```yaml
   mcp-firefly:
@@ -179,5 +146,5 @@ npm-пакет мультиарх. Пошаговая настройка — [`f
     environment:
       FIREFLY_URL: http://firefly-app:8080
       FIREFLY_TOKEN: ${FIREFLY_MCP_TOKEN:-}
-    # expose / ports / healthcheck (/healthz) / deploy / networks — как у mcp-vikunja
+    # expose / ports / healthcheck (/healthz) / deploy / networks — как в bridge-примере выше
 ```
