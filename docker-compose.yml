@@ -52,6 +52,7 @@ services:
       - traefik.http.routers.dashboard-vaultwarden.entrypoints=websecure
       - traefik.http.routers.dashboard-vaultwarden.service=dashboard-vaultwarden
       - traefik.http.routers.dashboard-vaultwarden.tls.certresolver=letsencrypt
+      - traefik.http.services.dashboard-vaultwarden.loadbalancer.server.port=80
 
     # 192M (not 128M): server-side Argon2id verification of ADMIN_TOKEN spikes
     # ~64 MiB transiently on each /admin login — headroom for the no-swap Pi 5.
