@@ -36,10 +36,22 @@ services:
     volumes:
       - vaultwarden_data:/data
 
-    # For local testing — set VAULTWARDEN_PORT=9100 in .env.
+    # Escape hatch for LAN access — VAULTWARDEN_PORT=9100 in .env.
     # Vaultwarden's Rocket server listens on container port 80 by default.
     ports:
       - ${VAULTWARDEN_PORT:-}:80
+
+    labels:
+      - traefik.enable=true
+      # passwords.priney.com → this container :80 (https; vaultwarden needs it
+      # for WebAuthn/passkeys and attachment links). Cert via Cloudflare DNS-01
+      # (works for Tailscale-only domains). Committed 2026-09-14: these labels
+      # were on the container but never in git — the 09-07 redeploy (deeeb6b)
+      # recreated it without them and the domain 404'd.
+      - traefik.http.routers.dashboard-vaultwarden.rule=Host(`passwords.priney.com`)
+      - traefik.http.routers.dashboard-vaultwarden.entrypoints=websecure
+      - traefik.http.routers.dashboard-vaultwarden.service=dashboard-vaultwarden
+      - traefik.http.routers.dashboard-vaultwarden.tls.certresolver=letsencrypt
 
     # 192M (not 128M): server-side Argon2id verification of ADMIN_TOKEN spikes
     # ~64 MiB transiently on each /admin login — headroom for the no-swap Pi 5.
